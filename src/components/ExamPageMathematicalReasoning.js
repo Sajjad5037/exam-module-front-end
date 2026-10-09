@@ -1,0 +1,1443 @@
+import React, {
+useState,
+useEffect,
+useRef,
+useCallback
+} from "react";
+import "./ExamPageMathematicalReasoning.css";
+
+import MathematicalReasoningReview from "./MathematicalReasoningReview";
+import "./ExamOptionStates_mr.css";
+
+/* ============================================================
+ MAIN COMPONENT
+============================================================ */
+export default function ExamPageMathematicalReasoning({
+  mode: parentMode,
+  variant,
+  studentId,
+  onExamStart,
+  onExamFinish,
+  onBackToDashboard
+}) {
+
+
+const hasSubmittedRef = useRef(false);
+const prevIndexRef = useRef(null);
+const [explanation, setExplanation] = useState(null);
+const [examDates, setExamDates] = useState([]);
+const [selectedExamId, setSelectedExamId] = useState(null);
+const [loadingExplanation, setLoadingExplanation] = useState(false);
+const isPopNavigationRef = useRef(false);
+/**
+ * mode:
+ * - loading → deciding what to show
+ * - exam    → active attempt
+ * - report  → completed attempt
+ */
+const [mode, setMode] = useState("loading");
+const handleReviewLoaded = useCallback((questions) => {
+  console.log("✅ Review questions received:", questions.length);
+
+  const normalized = questions.map(q => {
+    const rawBlocks = Array.isArray(q.question_blocks)
+      ? q.question_blocks
+      : Array.isArray(q.blocks)
+      ? q.blocks
+      : [];
+
+    return {
+      ...q,
+      blocks: rawBlocks.map(block => {
+        if (
+          block?.type === "image" &&
+          block?.src &&
+          !block.src.startsWith("http")
+        ) {
+          return {
+            ...block,
+            src: `https://storage.googleapis.com/exammoduleimages/${block.src}`
+          };
+        }
+        return block;
+      })
+    };
+  });
+
+  setReviewQuestions(normalized);
+  setCurrentIndex(0);
+}, []);
+const handleDateChange = async (e) => {
+  const examId = e.target.value ? Number(e.target.value) : null;
+
+  console.log("📅 Date changed → examId:", examId);
+
+  setSelectedExamId(examId);
+  console.log("📅 AFTER setSelectedExamId (will update next render)");
+
+  if (mode === "report") {
+    await loadReport(examId);
+  }
+};
+const loadReport = useCallback(async (examId) => {
+  try {
+    if (!examId) return;
+
+    const endpoint =
+      variant === "homework"
+        ? "/api/student/homework-report/mathematical-reasoning"
+        : "/api/student/exam-report/mathematical-reasoning";
+
+    const res = await fetch(
+      `${API_BASE}${endpoint}?student_id=${studentId}&exam_id=${examId}`
+    );
+
+    if (!res.ok) {
+      console.warn("⚠️ Report not available yet");
+      return;
+    }
+
+    const data = await res.json();
+    console.log("📊 report loaded:", data);
+
+    setReport(data);
+    setMode("report");
+
+  } catch (err) {
+    console.error("❌ loadReport error:", err);
+  }
+}, [studentId, variant]);
+
+ const loadExamDates = useCallback(async () => {
+  try {
+    const datesEndpoint =
+      variant === "homework"
+        ? "/api/student/homework-dates/mathematical-reasoning"
+        : "/api/student/exam-dates/mathematical-reasoning";
+
+    const reportEndpoint =
+      variant === "homework"
+        ? "/api/student/homework-report/mathematical-reasoning"
+        : "/api/student/exam-report/mathematical-reasoning";
+
+    const res = await fetch(
+      `${API_BASE}${datesEndpoint}?student_id=${studentId}`
+    );
+
+    const data = await res.json();
+    console.log("📅 dates:", data);
+
+    setExamDates(data);
+
+    // 🔥 Find FIRST attempt that actually has a report
+    for (const exam of data) {
+      const examId = exam.exam_id;
+
+      const reportRes = await fetch(
+        `${API_BASE}${reportEndpoint}?student_id=${studentId}&exam_id=${examId}`
+      );
+
+      if (reportRes.ok) {
+        const reportData = await reportRes.json();
+
+        console.log("✅ Found valid report for:", examId);
+
+        setSelectedExamId(examId);
+        setReport(reportData);
+        setMode("report");
+
+        return; // ✅ STOP at first valid one
+      }
+    }
+
+    // ❗ No reports found
+    console.warn("⚠️ No valid reports available yet");
+    setReport(null);
+    setMode("report"); 
+
+  } catch (err) {
+    console.error("❌ loadExamDates error:", err);
+  }
+}, [studentId, variant]);
+ 
+const handleExitReview = () => {
+  console.log("🔙 Exit Review clicked (MR)");
+
+  setReviewQuestions([]);
+  setCurrentIndex(0);
+  setVisited({});
+  setAnswers({});
+
+  setMode("report");
+};
+const normalizeOptionContent = (content) => {
+  if (!content) return { type: "text", content };
+
+  // match "A) filename.png"
+  const match = content.match(/\)\s*(.*\.png)$/i);
+
+  if (!match) {
+    return { type: "text", content };
+  }
+
+  const filename = match[1].trim();
+
+  return {
+    type: "image",
+    src: `https://storage.googleapis.com/exammoduleimages/${filename}`
+  };
+};
+
+
+// ---------------- EXAM STATE ----------------
+const [questions, setQuestions] = useState([]);
+const [showConfirmFinish, setShowConfirmFinish] = useState(false);
+const [showQuestionNavigator, setShowQuestionNavigator] =
+  useState(false);
+
+const [flaggedQuestions, setFlaggedQuestions] =
+  useState({});
+
+
+const [reviewQuestions, setReviewQuestions] = useState([]);
+const activeQuestions =
+  mode === "review" ? reviewQuestions : questions;
+
+const [currentIndex, setCurrentIndex] = useState(0);
+const [answers, setAnswers] = useState({});
+const [visited, setVisited] = useState({});
+const [timeLeft, setTimeLeft] = useState(null);
+const API_BASE = process.env.REACT_APP_API_URL;
+//const API_BASE = "http://127.0.0.1:8000";
+
+
+
+if (!API_BASE) {
+  throw new Error("❌ REACT_APP_API_URL is not defined");
+}
+
+
+// ---------------- REPORT ----------------
+const [report, setReport] = useState(null);
+
+
+/* ============================================================
+   LOAD REPORT (ONLY WHEN EXAM IS COMPLETED)
+============================================================ */
+ useEffect(() => {
+  if (!studentId) return;
+
+  if (mode !== "loading") return;
+
+  // 🔥 PRIORITY: REPORT ONLY
+  if (parentMode === "report") {
+  loadExamDates();   // ✅ this will setMode("report") internally
+  return;
+}
+
+  // ❗ DO NOTHING for exam
+  // startExam effect will handle it
+
+}, [studentId, parentMode, mode]);
+ 
+useEffect(() => {
+  console.log("🎯 selectedExamId UPDATED:", selectedExamId);
+}, [selectedExamId]);
+ 
+useEffect(() => {
+  if (mode !== "exam") return;
+
+  window.history.replaceState(
+    { questionIndex: currentIndex },
+    "",
+    window.location.href
+  );
+}, [mode]);
+useEffect(() => {
+  if (mode !== "exam") return;
+
+  if (isPopNavigationRef.current) {
+    isPopNavigationRef.current = false;
+    return;
+  }
+
+  window.history.pushState(
+    { questionIndex: currentIndex },
+    "",
+    window.location.href
+  );
+}, [currentIndex, mode]);
+useEffect(() => {
+  if (mode !== "exam") return;
+
+  const handlePopState = (e) => {
+    const state = e.state;
+
+    console.log("POPSTATE:", state);
+
+    // 🔥 Block exit on first question
+    if (currentIndex === 0) {
+      if (!showConfirmFinish) {
+        setShowConfirmFinish(true);
+      }
+
+      window.history.replaceState(
+        { questionIndex: 0 },
+        "",
+        window.location.href
+      );
+
+      return;
+    }
+
+    // 🔥 Normal navigation
+    if (!state || typeof state.questionIndex !== "number") {
+      return;
+    }
+
+    isPopNavigationRef.current = true;
+    setCurrentIndex(state.questionIndex);
+  };
+
+  window.addEventListener("popstate", handlePopState);
+
+  return () => {
+    window.removeEventListener("popstate", handlePopState);
+  };
+}, [mode, currentIndex, showConfirmFinish]);
+useEffect(() => {
+  if (mode !== "exam") return;
+  if (questions.length === 0) return;
+
+  const handleBeforeUnload = (e) => {
+    e.preventDefault();
+    e.returnValue = ""; // 🔥 triggers browser confirmation
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [mode, questions.length]);
+ 
+useEffect(() => {
+  setExplanation(null);
+}, [currentIndex]);
+useEffect(() => {
+  console.log("🔄 MODE CHANGED:", mode);
+}, [mode]);
+/* ============================================================
+   START / RESUME EXAM (SINGLE SOURCE OF TRUTH)
+============================================================ */
+useEffect(() => {
+  if (!studentId) return;
+  if (parentMode !== "exam") return;
+  if (mode !== "loading") return;
+
+  const startExam = async () => {
+    try {
+      const endpoint =
+        variant === "homework"
+          ? "/api/student/start-homework-mr"
+          : "/api/student/start-exam";
+
+      const res = await fetch(
+        `${API_BASE}${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_id: studentId })
+        }
+      );
+
+      const data = await res.json();
+      console.log("📥 start:", data);
+
+      // ✅ COMPLETED → SHOW REPORT
+      if (data.completed === true) {
+        await loadExamDates();
+        onExamFinish?.();
+        return;
+      }
+
+      // ✅ Normalize questions (unchanged)
+      const normalizedQuestions = (data.questions || []).map(q => {
+        const rawBlocks = Array.isArray(q.question_blocks)
+          ? q.question_blocks
+          : Array.isArray(q.blocks)
+          ? q.blocks
+          : [];
+
+        return {
+          ...q,
+          blocks: rawBlocks.map(block => {
+            if (
+              block?.type === "image" &&
+              block?.src &&
+              !block.src.startsWith("http")
+            ) {
+              return {
+                ...block,
+                src: `https://storage.googleapis.com/exammoduleimages/${block.src}`
+              };
+            }
+            return block;
+          })
+        };
+      });
+
+      setQuestions(normalizedQuestions);
+      setTimeLeft(data.remaining_time);
+      setMode("exam");
+      onExamStart?.();
+
+    } catch (err) {
+      console.error("❌ start error:", err);
+    }
+  };
+
+  startExam();
+
+}, [studentId, parentMode, variant]);
+ 
+/* ============================================================
+   MARK VISITED QUESTIONS
+============================================================ */
+useEffect(() => {
+  if (prevIndexRef.current !== null) {
+    const prevIdx = prevIndexRef.current;
+    const prevQ = activeQuestions[prevIdx];
+
+    if (prevQ && !answers[prevQ.q_id]) {
+      setVisited(prev => ({ ...prev, [prevQ.q_id]: true }));
+    }
+  }
+
+  prevIndexRef.current = currentIndex;
+}, [currentIndex, activeQuestions, answers]);
+ 
+useEffect(() => {
+  if (questions.length > 0) {
+    console.log("🧠 SAMPLE QUESTION OBJECT:", questions[0]);
+  }
+}, [questions]);
+
+
+/* ============================================================
+   FINISH EXAM (SUBMIT ONLY — NO UI DECISIONS)
+============================================================ */
+const finishExam = useCallback(
+  async (reason = "submitted") => {
+    if (hasSubmittedRef.current) return;
+    hasSubmittedRef.current = true;
+
+    const payload = {
+      student_id: studentId,
+      answers
+    };
+
+    console.log("📤 finish payload:", payload);
+
+    try {
+      const endpoint =
+        variant === "homework"
+          ? "/api/student/finish-homework-math-reasoning"
+          : "/api/student/finish-exam";
+
+      const res = await fetch(
+        `${API_BASE}${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!res.ok) {
+        console.error("❌ finish failed");
+        return;
+      }
+
+      // 🔥 IMPORTANT: refresh dates FIRST
+      await loadExamDates();
+
+      onExamFinish?.();
+
+    } catch (err) {
+      console.error("❌ finish error:", err);
+    }
+  },
+   [studentId, answers, variant, loadExamDates]
+);
+
+/* ============================================================
+   TIMER (AUTO SUBMIT)
+============================================================ */
+useEffect(() => {
+  if (timeLeft === null) return;
+
+  // ⏱️ TIME UP ALWAYS WINS — NO UI STATE CAN BLOCK THIS
+  if (timeLeft <= 0) {
+    if (!hasSubmittedRef.current) {
+      setShowConfirmFinish(false);
+      finishExam("time_expired");
+    }
+    return;
+  }
+
+  // ⏸️ pause ticking while confirm modal is open
+  if (showConfirmFinish) return;
+
+  const interval = setInterval(() => {
+    setTimeLeft(t => t - 1);
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [timeLeft, showConfirmFinish, finishExam]);
+
+/* ============================================================
+   ANSWER HANDLING
+============================================================ */
+const handleGenerateExplanation = async () => {
+  if (!currentQ) return;
+
+  setLoadingExplanation(true);
+  setExplanation(null);
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/ai/explain-question-TS`, // reuse same endpoint
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          question: currentQ?.blocks,
+          options: currentQ?.options,
+          correct_answer: currentQ.correct_answer
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    setExplanation(data.explanation);
+
+  } catch (err) {
+    console.error("Explanation error", err);
+    setExplanation("Failed to generate explanation.");
+  }
+
+  setLoadingExplanation(false);
+};
+const toggleFlagQuestion = () => {
+
+  const qid =
+    activeQuestions[currentIndex]?.q_id;
+
+  if (!qid) return;
+
+  setFlaggedQuestions(prev => ({
+
+    ...prev,
+
+    [qid]: !prev[qid]
+
+  }));
+};
+const handleAnswer = (optionKey) => {
+  if (mode === "review") return;
+  const qid = activeQuestions[currentIndex]?.q_id;
+  if (!qid) return;
+
+  setAnswers(prev => ({
+    ...prev,
+    [qid]: optionKey.toUpperCase().trim()
+  }));
+};
+
+const goToQuestion = (idx) => {
+  const qid = activeQuestions[idx]?.q_id;
+  if (qid) {
+    setVisited(prev => ({ ...prev, [qid]: true }));
+  }
+  setCurrentIndex(idx);
+};
+
+
+const formatTime = (seconds) => {
+  const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const s = String(seconds % 60).padStart(2, "0");
+  return `${m}:${s}`;
+};
+
+/* ============================================================
+   RENDER
+============================================================ */
+
+if (mode === "loading") {
+  return <p className="loading">Loading…</p>;
+}
+
+if (mode === "report") {
+return (
+  <MathematicalReasoningReport
+   key={selectedExamId}   // 🔥 ADD THIS
+   report={report}
+   examDates={examDates}
+   selectedExamId={selectedExamId}
+   onDateChange={handleDateChange}
+   onViewExamDetails={() => setMode("review")}
+   onBackToDashboard={onBackToDashboard}
+ />
+
+);
+}
+
+
+// ---------------- EXAM UI ----------------
+if (mode !== "exam" && mode !== "review") {
+  return <p className="loading">Loading...</p>;
+}
+const currentQ = activeQuestions[currentIndex];
+const isReview = mode === "review";
+ if (isReview) {
+  console.log("🧠 RENDER REVIEW MODE", {
+    selectedExamId,
+    reviewQuestionsLength: reviewQuestions.length
+  });
+  console.log("📥 Passing examId to Review:", selectedExamId);
+}
+  console.log("🧪 FULL QUESTION:", currentQ);
+  console.log("🧪 OPTIONS FIELD:", currentQ?.options);
+const optionEntries = Object.entries(
+  currentQ?.options ||
+  currentQ?.answer_options ||
+  currentQ?.choices ||
+  {}
+);
+return (
+<div className="exam-shell">
+  <div className="exam-container">
+    {mode === "review" && (
+  <>
+    <MathematicalReasoningReview
+      key={selectedExamId} 
+      studentId={studentId}
+      examId={selectedExamId}
+      examDates={examDates}
+      selectedExamId={selectedExamId}
+      onDateChange={handleDateChange}
+      onLoaded={handleReviewLoaded}
+      onExit={handleExitReview}
+      mode={parentMode}
+      variant={variant}
+    />
+
+    {reviewQuestions.length === 0 && (
+     <p className="loading">Loading review...</p>
+   )}
+  </>
+)}
+    
+  
+  
+    {/* HEADER */}
+    <div className="exam-header">
+
+  {mode === "exam" && (
+    <div className="timer">
+      ⏳ {formatTime(timeLeft)}
+    </div>
+  )}
+
+  <div className="question-counter-inline">
+
+    <span className="question-counter-text">
+      Question {currentIndex + 1} of {activeQuestions.length}
+    </span>
+
+    <button
+      className="question-grid-toggle"
+      onClick={() =>
+        setShowQuestionNavigator(prev => !prev)
+      }
+    >
+      ▦
+    </button>
+
+    {isReview && (
+      <>
+        <button
+          className="exit-review-btn"
+          onClick={handleExitReview}
+        >
+          Exit Review
+        </button>
+
+        <select
+          className="review-exam-dropdown"
+          value={selectedExamId || ""}
+          onChange={handleDateChange}
+        >
+          {examDates.map((d) => (
+            <option
+              key={d.exam_id}
+              value={d.exam_id}
+            >
+              {new Date(d.date).toLocaleString()}
+            </option>
+          ))}
+        </select>
+      </>
+    )}
+  </div>
+
+  {/* 🔥 TOP RIGHT NAVIGATION */}
+  {/* TOP RIGHT NAVIGATION */}
+<div className="top-nav-buttons">
+  <button
+    className="nav-btn prev"
+    onClick={() => goToQuestion(currentIndex - 1)}
+    disabled={currentIndex === 0}
+  >
+    Previous
+  </button>
+
+  {!isReview && (
+    <button
+      className={`flag-btn ${
+        flaggedQuestions[activeQuestions[currentIndex]?.q_id]
+          ? "flagged"
+          : ""
+      }`}
+      onClick={toggleFlagQuestion}
+    >
+      🚩{" "}
+      {flaggedQuestions[activeQuestions[currentIndex]?.q_id]
+        ? "Unflag"
+        : "Flag"}
+    </button>
+  )}
+
+  <button
+    className="nav-btn next"
+    onClick={() => goToQuestion(currentIndex + 1)}
+    disabled={currentIndex === activeQuestions.length - 1}
+  >
+    Next
+  </button>
+
+  {!isReview && currentIndex === activeQuestions.length - 1 && (
+    <button
+      className="nav-btn finish"
+      onClick={() => setShowConfirmFinish(true)}
+    >
+      Finish Exam
+    </button>
+  )}
+</div>
+</div>
+    {/* QUESTION INDEX */}
+    {showQuestionNavigator && (
+      
+        <div className="question-index-wrapper">
+        
+        {!isReview && (
+          <div className="question-summary-row">
+
+            <div className="summary-item">
+
+              <span className="summary-count">
+                {
+                  activeQuestions.filter(q =>
+                    answers[q.q_id]
+                  ).length
+                }
+              </span>
+
+              <span className="summary-label">
+                Answered
+              </span>
+
+            </div>
+
+            <div className="summary-item">
+
+              <span className="summary-count">
+                {
+                  activeQuestions.length -
+
+                  activeQuestions.filter(q =>
+                    answers[q.q_id]
+                  ).length
+                }
+              </span>
+
+              <span className="summary-label">
+                Not answered
+              </span>
+
+            </div>
+
+            <div className="summary-item">
+
+              <span className="summary-count">
+                {
+                  activeQuestions.filter(q =>
+                    !visited[q.q_id]
+                  ).length
+                }
+              </span>
+
+              <span className="summary-label">
+                Not read
+              </span>
+
+            </div>
+
+            <div className="summary-item">
+
+              <span className="summary-count">
+                {
+                  Object.values(
+                    flaggedQuestions
+                  )
+                    .filter(Boolean)
+                    .length
+                }
+              </span>
+
+              <span className="summary-label">
+                Flagged
+              </span>
+
+            </div>
+
+          </div>
+        )}
+
+          <div className="question-index-bar">
+
+            {
+              activeQuestions.map((q, i) => {
+
+                let cls =
+                  "question-index-item";
+
+                if (isReview) {
+
+                  const student =
+                    q.student_answer
+                      ?.trim()
+                      .toUpperCase();
+
+                  const correct =
+                    q.correct_answer
+                      ?.trim()
+                      .toUpperCase();
+
+                  if (!student) {
+
+                    cls += " unanswered";
+
+                  } else if (
+                    student === correct
+                  ) {
+
+                    cls += " correct";
+
+                  } else {
+
+                    cls += " incorrect";
+                  }
+
+                } else {
+
+                  if (
+                    answers[q.q_id]
+                  ) {
+
+                    cls += " answered";
+
+                  } else if (
+                    visited[q.q_id]
+                  ) {
+
+                    cls += " visited";
+
+                  } else {
+
+                    cls += " unanswered";
+                  }
+                }
+
+                if (
+                  i === currentIndex
+                ) {
+
+                  cls += " current";
+                }
+
+                return (
+
+                  <button
+                    key={q.q_id}
+
+                    className={cls}
+
+                    onClick={() => {
+
+                      goToQuestion(i);
+
+                      setShowQuestionNavigator(
+                        false
+                      );
+                    }}
+                  >
+
+                    <div className="question-index-content">
+
+                      <span>
+                        {i + 1}
+                      </span>
+
+                      {
+                        flaggedQuestions[
+                          q.q_id
+                        ] && (
+                          <span className="question-flag">
+                            🚩
+                          </span>
+                        )
+                      }
+
+                    </div>
+
+                  </button>
+                );
+              })
+            }
+
+          </div>
+
+        </div>
+
+      )
+    }
+
+    {/* QUESTION CARD */}
+<div className="question-card">
+
+    {/* ✅ RENDER QUESTION BLOCKS */}
+    {Array.isArray(currentQ?.blocks) &&
+      currentQ?.blocks.map((block, idx) => {
+        if (block.type === "text") {
+          return (
+            <p key={idx} className="question-text">
+              {block.content}
+            </p>
+          );
+        }
+
+        if (block.type === "image") {
+          return (
+            <img
+              key={idx}
+              src={block.src}
+              alt={`Question visual ${idx + 1}`}
+              className="question-image"
+            />
+          );
+        }
+
+        return null;
+      })}
+
+      {/* OPTIONS */}
+      {optionEntries.map(([key, opt], i) => {
+        const optionKey = key.toUpperCase();
+        const student = currentQ?.student_answer?.trim().toUpperCase();
+        const correct = currentQ?.correct_answer?.trim().toUpperCase();
+        
+        let statusClass = "";
+        
+        if (isReview) {
+          if (optionKey === correct) {
+            statusClass = "option-correct";     // green
+          } else if (optionKey === student) {
+            statusClass = "option-wrong";       // red
+          }
+        } else {
+          if (answers[currentQ?.q_id] === optionKey) {
+            statusClass = "selected";
+          }
+        }
+
+        return (
+          <button
+            key={i}
+            disabled={isReview}
+            className={`option-btn ${statusClass}`}
+            onClick={() => !isReview && handleAnswer(optionKey)}
+          >
+            <>
+              <span style={{ fontWeight: "700", marginRight: "8px" }}>
+                {optionKey}.
+              </span>
+
+              <span>
+                {opt?.type === "image" && opt?.src ? (
+                  <img
+                    src={opt.src}
+                    alt={`Option ${optionKey}`}
+                    className="option-image"
+                  />
+                ) : (
+                  (opt?.content || opt?.text || "")
+                    .replace(/^[A-E]\)\s*/, "")
+                )}
+              </span>
+            </>
+          </button>
+        );
+      })}
+    {/* AI EXPLANATION SECTION */}
+    {isReview && (
+      <div style={{ marginTop: "20px" }}>
+
+        <button
+          onClick={handleGenerateExplanation}
+          disabled={loadingExplanation}
+          style={{
+            padding: "10px 16px",
+            background: "#2563eb",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer"
+          }}
+        >
+          {loadingExplanation ? "Generating..." : "✨ Generate AI Explanation"}
+        </button>
+
+        {explanation && (
+          <div
+            style={{
+              marginTop: "15px",
+              padding: "15px",
+              background: "#f9fafb",
+              borderRadius: "8px",
+              border: "1px solid #e5e7eb",
+              lineHeight: "1.6"
+            }}
+          >
+            <h4 style={{ marginBottom: "10px" }}>AI Explanation</h4>
+
+            <p
+              dangerouslySetInnerHTML={{
+                __html: explanation
+                  .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                  .replace(/\n/g, "<br/>")
+              }}
+            />
+          </div>
+        )}
+
+      </div>
+    )}
+
+    </div>
+
+
+    
+  </div> 
+  {showConfirmFinish && (
+  <div className="confirm-overlay">
+    <div className="confirm-modal">
+      <h3>Finish Exam?</h3>
+      <p>
+        Are you sure you want to submit your exam?
+        <br />
+        You won’t be able to change your answers after this.
+      </p>
+
+      <div className="confirm-actions">
+        <button
+          className="btn cancel"
+          onClick={() => setShowConfirmFinish(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="btn confirm"
+          onClick={() => {
+            setShowConfirmFinish(false);
+            finishExam("manual_submit");
+          }}
+        >
+          Yes, Submit Exam
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+   
+</div>
+)
+}
+
+
+/* ============================================================
+ REPORT COMPONENT
+============================================================ */
+
+function MathematicalReasoningReport({
+  report,
+  examDates,
+  selectedExamId,
+  onDateChange,
+  onViewExamDetails,
+  onBackToDashboard
+}) {
+  // 🔴 NO REPORT CASE
+  if (!report) {
+    return (
+      <div className="empty-state">
+        <button
+          className="back-dashboard-button"
+          onClick={onBackToDashboard}
+        >
+          ← Back
+        </button>
+
+        <h3>No reports available yet</h3>
+
+        <p>
+          You haven’t attempted any exams yet.
+          <br />
+          Complete an exam to see your performance here.
+        </p>
+      </div>
+    );
+  }
+  if (!report?.overall) {
+    return <p className="loading">Generating your report…</p>;
+  }
+
+  const {
+    overall,
+    topic_wise_performance,
+    topic_accuracy,
+    improvement_areas
+  } = report;
+
+  const greyPercent =
+    (overall.correct / overall.total_questions) * 100;
+
+  const percentage = Math.round(greyPercent);
+
+  return (
+     <div
+       style={{
+         position: "fixed",
+         inset: 0,
+         overflowY: "auto",
+         background: "#f3f4f6",
+         padding: "32px",
+         boxSizing: "border-box",
+         zIndex: 1
+       }}
+     > 
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: "20px"
+          }}
+        >
+          <button
+            onClick={onBackToDashboard}
+            style={{
+              padding: "10px 18px",
+              background: "#0d8ecf",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600"
+            }}
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+  
+        {/* Row 1: Heading */}
+        <h2
+          style={{
+            fontSize: "26px",
+            fontWeight: "600",
+            marginBottom: "12px"
+          }}
+        >
+          You scored {overall.correct} out of {overall.total_questions} in NSW
+          Selective Mathematical Reasoning Test
+        </h2>
+
+        {/* Row 2: Right-aligned controls */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-start",
+            alignItems: "flex-end",
+            gap: "16px"
+          }}
+        >
+          {/* Date */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "6px",
+                fontWeight: "500"
+              }}
+            >
+              Date
+            </label>
+
+            <select
+              value={selectedExamId || ""}
+              onChange={onDateChange}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db"
+              }}
+            >
+              {examDates.map((d) => (
+                <option key={d.exam_id} value={d.exam_id}>
+                  {new Date(d.date).toLocaleString()}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Button */}
+          <button
+            onClick={onViewExamDetails}
+            style={{
+              padding: "10px 18px",
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer"
+            }}
+          >
+            View Exam Details
+          </button>
+        </div>
+
+      </div>
+      
+      
+      
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: "24px",
+          width: "100%",
+          maxWidth: "1200px"
+        }}
+      >
+
+        {/* OVERALL ACCURACY */}
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "10px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <h3>Overall Score</h3>
+
+          <div style={{ display: "flex", justifyContent: "center", margin: "24px 0" }}>
+            <svg width="160" height="160" viewBox="0 0 160 160">
+
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                stroke="#e5e7eb"
+                strokeWidth="14"
+                fill="none"
+              />
+
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                stroke="#22c55e"
+                strokeWidth="14"
+                fill="none"
+                strokeDasharray={`${percentage * 4.4} 999`}
+                strokeLinecap="round"
+                transform="rotate(-90 80 80)"
+              />
+
+              <text
+                x="80"
+                y="88"
+                textAnchor="middle"
+                fontSize="24"
+                fontWeight="600"
+                fill="#111827"
+              >
+                {percentage}%
+              </text>
+
+            </svg>
+          </div>
+
+          <div style={{ lineHeight: "1.8" }}>
+            <p>Total Questions: {overall.total_questions}</p>
+            <p>Attempted: {overall.attempted}</p>
+            <p>Correct: {overall.correct}</p>
+            <p>Incorrect: {overall.incorrect}</p>
+            <p>Not Attempted: {overall.not_attempted}</p>
+            <p>Accuracy: {overall.score_percent}%</p>
+          </div>
+        </div>
+
+        {/* TOPIC PERFORMANCE */}
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "10px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <h3>Topic-wise Performance</h3>
+
+          {topic_wise_performance.map(t => (
+            <div
+              key={t.topic}
+              style={{ marginBottom: "18px" }}
+            >
+              <div style={{ marginBottom: "6px", fontWeight: "500" }}>
+                {t.topic}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  height: "10px",
+                  borderRadius: "6px",
+                  overflow: "hidden",
+                  background: "#e5e7eb"
+                }}
+              >
+                <div
+                  style={{
+                    width: `${(t.correct / t.total) * 100}%`,
+                    background: "#22c55e"
+                  }}
+                />
+
+                <div
+                  style={{
+                    width: `${(t.incorrect / t.total) * 100}%`,
+                    background: "#ef4444"
+                  }}
+                />
+
+                <div
+                  style={{
+                    width: `${(t.not_attempted / t.total) * 100}%`,
+                    background: "#9ca3af"
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  marginTop: "6px",
+                  fontSize: "14px"
+                }}
+              >
+                <span>Attempted: {t.attempted}</span>
+                <span style={{ color: "#22c55e" }}>Correct: {t.correct}</span>
+                <span style={{ color: "#ef4444" }}>Incorrect: {t.incorrect}</span>
+                <span style={{ color: "#6b7280" }}>
+                  Not Attempted: {t.not_attempted}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* IMPROVEMENT AREAS */}
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "10px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <h3>Improvement Areas</h3>
+
+          {improvement_areas.map(t => (
+            <div
+              key={t.topic}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                marginBottom: "14px"
+              }}
+            >
+              <span style={{ width: "120px" }}>{t.topic}</span>
+
+              <div
+                style={{
+                  flex: 1,
+                  height: "10px",
+                  background: "#e5e7eb",
+                  borderRadius: "6px",
+                  overflow: "hidden"
+                }}
+              >
+                <div
+                  style={{
+                    width: `${t.accuracy_percent}%`,
+                    background: "#2563eb",
+                    height: "100%"
+                  }}
+                />
+              </div>
+
+              <span>{t.accuracy_percent}%</span>
+
+              {t.limited_data && (
+                <small style={{ color: "#ef4444" }}>
+                  Limited data
+                </small>
+              )}
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  );
+}

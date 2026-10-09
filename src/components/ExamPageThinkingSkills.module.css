@@ -1,0 +1,181 @@
+/* ExamPageThinkingSkills.module.css */
+
+.examShell {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f7fb;
+
+  display: block;
+
+  overflow-y: auto;   /* enable vertical scroll */
+}
+/*
+  This is the MAIN fix:
+  - allow full width
+  - control readability with max-width
+*/
+.examContainer {
+  width: 100%;
+  max-width: none;
+  padding: 32px 48px;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  flex: 1;              /* 🔑 THIS is the missing piece */
+  overflow: visible;    /* 🔑 allow children to scroll */
+}
+/* ================= HEADER ================= */
+
+.examHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* ================= QUESTION INDEX ================= */
+
+.indexRow {
+  display: flex;
+  flex-wrap: wrap;          /* allows multiple rows */
+  gap: 10px;
+  justify-content: center;  /* centers circles */
+  padding: 12px 10px;
+  margin-bottom: 18px;
+
+  /* remove vertical scrollbar behaviour */
+  max-height: none;
+  overflow: visible;
+}
+.indexCircle {
+  min-width: 40px;
+  height: 40px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 600;
+  cursor: pointer;
+
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+
+  flex-shrink: 0; /* ⬅️ prevents squishing */
+}
+
+.indexAnswered {
+  background-color: #bbf7d0;
+  border-color: #16a34a;
+  color: #065f46;
+}
+
+.indexVisited {
+  background-color: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.indexNotVisited {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.indexCorrect {
+  background-color: #22c55e;
+  color: #ffffff;
+}
+
+.indexIncorrect {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.indexSkipped {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+/* ================= CONFIRM MODAL ================= */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.55);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 9999;
+}
+
+.confirm-modal {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+
+  width: 90%;
+  max-width: 420px;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.confirm-actions .btn {
+  flex: 1;
+  padding: 10px 14px;
+
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.confirm-actions .cancel {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.confirm-actions .confirm {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.indexCorrect {
+  background-color: #16a34a;
+  color: white;
+  border-color: #16a34a;
+}
+
+.indexWrong {
+  background-color: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+.option-text {
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 1.5;
+  display: block !important;
+  flex: 1;
+  white-space: normal;
+  word-break: break-word;
+  opacity: 1 !important;
+  visibility: visible !important;
+}

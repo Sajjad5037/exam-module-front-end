@@ -1,0 +1,362 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "./SelectiveDashboard.css"; // you can reuse same CSS
+
+// EXAM COMPONENTS
+import ExamPageOcThinkingSkills from "./ExamPageOcThinkingSkills";
+import ExamPageOCMathematicalReasoning from "./ExamPageOCMathematicalReasoning";
+import ReadingComponentOC from "./ReadingComponentOC";
+
+import ExamPageOCwriting from "./ExamPageOCwriting";
+//import ReadingComponent from "./ReadingComponent";
+
+import WelcomeScreenOC from "./WelcomeScreenOC";
+import InstructionsScreenOC from "./InstructionsScreenOC";
+
+/*
+  SUBJECT CONFIG (OC)
+*/
+const SUBJECTS = [
+  {
+    label: "Thinking Skills",
+    key: "oc_thinking_skills",
+    component: ExamPageOcThinkingSkills,
+  },
+  {
+    label: "Mathematical Reasoning",
+    key: "mathematical_reasoning",
+    component: ExamPageOCMathematicalReasoning,
+  },
+  {
+    label: "Reading",
+    key: "reading",
+    component: ReadingComponentOC,
+  },
+  {
+    label: "Writing",
+    key: "writing",
+    component: ExamPageOCwriting,
+  },
+];
+
+const OCDashboard = () => {
+  const navigate = useNavigate();
+
+  const [activeSubject, setActiveSubject] = useState(null);
+  const [examInProgress, setExamInProgress] = useState(false);
+  const [examPhase, setExamPhase] = useState("mode_selection");
+  const [examMode, setExamMode] = useState(null);
+  const [reportVariant, setReportVariant] = useState(null);
+  const studentId = sessionStorage.getItem("student_id");
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [examAccess, setExamAccess] = useState(null);
+  const API_BASE = process.env.REACT_APP_API_URL;
+  const [subjectAvailability, setSubjectAvailability] = useState({});
+  const handleBackToDashboard = () => {
+    setActiveSubject(null);
+    setExamInProgress(false);
+    setExamMode(null);
+    setReportVariant(null);
+    setSubjectAvailability({});
+    setAvailabilityLoading(true);
+    setExamPhase("mode_selection");
+  };
+  const ActiveComponent = activeSubject?.component;
+  const handleLogout = () => {
+  // Clear student session data
+    sessionStorage.clear();
+
+    // Return to login page
+    navigate("/");
+  };
+
+  const handleSubjectSelect = (subject) => {
+  if (examInProgress) {
+    alert("Please submit your current exam before switching subjects.");
+    return;
+  }
+
+  setActiveSubject(subject);
+
+  if (examMode?.startsWith("report")) {
+    setExamPhase("exam"); // skip welcome/instructions
+  } else {
+    setExamPhase("welcome");
+  }
+};
+useEffect(() => {
+  if (!studentId) {
+    return;
+  }
+
+  fetch(
+    `${API_BASE}/api/student/exam-access?student_id=${encodeURIComponent(studentId)}`
+  )
+    .then(async (res) => {
+      if (!res.ok) {
+        throw new Error("Failed to fetch exam access.");
+      }
+
+      return res.json();
+    })
+    .then((data) => {
+      console.log("✅ OC Student exam access:", data);
+      setExamAccess(data);
+    })
+    .catch((err) => {
+      console.error("❌ Failed to fetch OC exam access:", err);
+      setExamAccess(null);
+    });
+}, [studentId]);
+useEffect(() => {
+  if (examPhase === "selection" && studentId && examMode) {
+    const normalizedMode =
+      examMode?.includes("homework")
+        ? "homework"
+        : examMode?.includes("report")
+        ? "report"
+        : "exam";
+
+    setAvailabilityLoading(true);
+
+    fetch(
+      `${API_BASE}/api/student/oc-available-subjects?mode=${normalizedMode}&student_id=${studentId}`
+    )
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("❌ Non-JSON response:", text);
+          throw new Error("Failed to fetch availability");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log("✅ OC Availability:", data);
+        setSubjectAvailability(data);
+      })
+      .catch((err) => {
+        console.error("❌ Failed to fetch OC availability", err);
+      })
+      .finally(() => {
+        setAvailabilityLoading(false); // 🔥 THIS WAS MISSING
+      });
+  }
+}, [examPhase, examMode, studentId]);
+  return (
+    <div className="selective-dashboard">
+       {/* 0️⃣ MODE SELECTION (ADD HERE) */}
+    {examPhase === "mode_selection" && (
+      <div className="subject-selection-wrapper">
+        
+
+        <img
+          src="https://gemkidsacademy.com.au/wp-content/uploads/2024/10/cropped-logo-4-1.png"
+          alt="Gem Kids Academy"
+          className="dashboard-logo"
+        />
+      {/* HERE 1000 */}
+        <div className="subject-selection-card">
+          <h1 className="dashboard-title oc-dashboard-title">
+            OC Placement Practice Test
+          </h1>
+
+          <div className="title-divider" />
+
+          <div className="subject-buttons">
+
+            <button
+              className={`subject-button ${
+                examAccess && !examAccess.active_exam ? "disabled" : ""
+              }`}
+              disabled={examAccess === null || !examAccess.active_exam}
+              onClick={() => {
+                setExamMode("exam");
+                setSubjectAvailability({});
+                setExamPhase("selection");
+              }}
+            >
+              Active exams
+            </button>
+
+            <button
+              className="subject-button"
+              onClick={() => {
+                setExamMode("report");
+                setSubjectAvailability({});
+                setExamPhase("report_mode_selection");
+              }}
+            >
+              Historical reports
+            </button>
+            <button
+              className={`subject-button ${
+                examAccess && !examAccess.homework_exam ? "disabled" : ""
+              }`}
+              disabled={examAccess === null || !examAccess.homework_exam}
+              onClick={() => {
+                setExamMode("homework");
+                setSubjectAvailability({});
+                setExamPhase("selection");
+              }}
+            >
+              Homework exams
+            </button>
+            <button
+              className="logout-button"
+              onClick={() => window.location.reload()}
+            >
+              Logout
+            </button>
+
+          </div>
+        </div>
+      </div>
+    )}
+    {examPhase === "report_mode_selection" && (
+  <div className="subject-selection-wrapper">
+    <div className="subject-selection-card">
+      <div
+        className="back-link"
+        onClick={() => setExamPhase("mode_selection")}
+      >
+        ← Back
+      </div>
+
+      <h1 className="dashboard-title">
+        Select Report Type
+      </h1>
+
+      <div className="title-divider" />
+
+      <div className="subject-buttons">
+        <button
+          className="subject-button"
+          onClick={() => {
+            setReportVariant("actual");
+            setExamMode("report");
+            setSubjectAvailability({});
+            setExamPhase("selection");
+          }}
+        >
+          Actual Exam
+        </button>
+
+        <button
+          className="subject-button"
+          onClick={() => {
+            setReportVariant("homework");
+            setExamMode("report_homework");
+            setSubjectAvailability({});
+            setExamPhase("selection");
+          }}
+        >
+          Homework
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+      {/* 1️⃣ SUBJECT SELECTION */}
+      {examPhase === "selection" && (
+        <div className="subject-selection-wrapper">
+        
+
+          <img
+            src="https://gemkidsacademy.com.au/wp-content/uploads/2024/10/cropped-logo-4-1.png"
+            alt="Gem Kids Academy"
+            className="dashboard-logo"
+          />
+          {/* HERE 2000 */}
+          <div className="subject-selection-card">
+            <div
+              className="back-link"
+              onClick={() => {
+                if (examMode?.startsWith("report")) {
+                  setExamPhase("report_mode_selection");
+                } else {
+                  setExamMode(null);
+                  setSubjectAvailability({});
+                  setExamPhase("mode_selection");
+                }
+              }}
+            >
+              ← Back
+            </div>
+            <h1 className="dashboard-title">
+              OC Placement Practice Test
+            </h1>
+
+            <div className="title-divider" />
+
+            <div className="subject-buttons">
+              {SUBJECTS.map((subject) => {
+                const subjectData = subjectAvailability[subject.key];
+
+                const isEnabled =
+                  availabilityLoading
+                    ? false
+                    : examMode?.startsWith("report")
+                    ? true
+                    : subjectData
+                    ? examMode === "exam"
+                      ? subjectData.exam === true
+                      : subjectData.homework === true
+                    : false;
+
+                return (
+                  <button
+                    key={subject.key}
+                    className={`subject-button ${!isEnabled ? "disabled" : ""}`}
+                    disabled={!isEnabled}
+                    onClick={() => isEnabled && handleSubjectSelect(subject)}
+                  >
+                    {subject.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2️⃣ WELCOME */}
+      {examPhase === "welcome" && (
+        <WelcomeScreenOC
+            onNext={() => setExamPhase("instructions")}
+            onBack={() => setExamPhase("selection")}
+        />
+      )}
+
+      {/* 3️⃣ INSTRUCTIONS */}
+      {examPhase === "instructions" && (
+        <InstructionsScreenOC
+            subject={activeSubject.key}
+            onNext={() => setExamPhase("exam")}
+            onBack={() => setExamPhase("welcome")}
+        />
+      )}
+
+      {/* 4️⃣ EXAM */}
+      {examPhase === "exam" && examMode !== null && (
+        <main className="content-area">
+          <div className="exam-root">
+            <ActiveComponent
+              key={`exam-${activeSubject.key}-${examMode}-${reportVariant}`}
+              studentId={studentId}
+              mode={examMode}
+              variant={reportVariant}
+              subject={activeSubject.key}
+              difficulty="advanced"
+              onExamStart={() => setExamInProgress(true)}
+              onExamFinish={() => setExamInProgress(false)}
+              onBackToDashboard={handleBackToDashboard}
+          />
+          </div>
+        </main>
+      )}
+
+    </div>
+  );
+};
+
+export default OCDashboard;

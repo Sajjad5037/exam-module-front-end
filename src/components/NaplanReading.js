@@ -1,0 +1,2284 @@
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback
+} from "react";
+
+import "./ExamPage.css";
+import "./NaplanReadingExam.css";
+
+import NaplanReadingReport from "./NaplanReadingReport";
+import NaplanReadingReview from "./NaplanReadingReview";
+
+/* ============================================================
+   MAIN COMPONENTa
+============================================================ */
+export default function NaplanReading({
+  onExamStart,
+  onExamFinish,
+  mode: parentMode,
+  onBackToDashboard
+}) {
+  const studentId = sessionStorage.getItem("student_id");
+  const isHomeworkMode =
+  parentMode === "homework" ||
+  parentMode === "report_homework";
+  const [flaggedQuestions, setFlaggedQuestions] =
+    useState({});
+  const [activeExtract, setActiveExtract] = useState(0);
+  const API_BASE = process.env.REACT_APP_API_URL;
+  
+  //const API_BASE = "http://127.0.0.1:8000";
+  const [examDates, setExamDates] = useState([]);
+  const [showReviewTools, setShowReviewTools] =
+  useState(false);
+  const [showQuestionNavigator, setShowQuestionNavigator] =
+    useState(false);
+  const [selectedExamId, setSelectedExamId] = useState(null);
+  const TYPE_2_MAX_SELECTIONS = 2;
+  const [explanations, setExplanations] = useState({});
+  const explanationRef = useRef(null);
+  
+  const [loadingExplanation, setLoadingExplanation] = useState(null);
+  const isPopNavigationRef = useRef(false);
+  
+  const handleGenerateExplanationForReading = async (q) => {
+  const qid = String(q.question_id);
+    
+
+  // allow regenerate
+  if (loadingExplanation === qid) return;
+
+  setLoadingExplanation(qid);
+
+  try {
+    const questionText = q.exam_bundle?.question_blocks
+      ?.filter(b => b.type !== "reading")
+      ?.map(b => b.content || b.text || "")
+      ?.join(" ");
+
+    const passageBlock = q.exam_bundle?.question_blocks?.find(
+      b => b.type === "reading"
+    );
+
+    const res = await fetch(
+      `${API_BASE}/api/ai/explain-question-naplan-reading`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question_text: questionText,
+          options:
+            q.exam_bundle?.options ||
+            q.exam_bundle?.image_options ||
+            {},
+          correct_answer: q.exam_bundle?.correct_answer,
+          passage: passageBlock || null
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    setExplanations(prev => ({
+      ...prev,
+      [qid]: data.explanation || "⚠️ Failed to generate explanation."
+    }));
+    
+    // ✅ scroll AFTER render
+    setTimeout(() => {
+      explanationRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    }, 100);
+
+  } catch (err) {
+    console.error(err);
+
+    setExplanations(prev => ({
+      ...prev,
+      [qid]: "⚠️ Failed to generate explanation."
+    }));
+  } finally {
+    setLoadingExplanation(null);
+  }
+};
+  const formatExplanationHtml = (text) => {
+  if (!text) return "";
+
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong style='display:block; margin-top:10px;'>$1</strong>")
+    .replace(/\n\n/g, "<br/><br/>")
+    .replace(/\n/g, "<br/>");
+};
+  function hasAnswered(question, answers) {
+  if (!question || !answers) return false;
+
+  const qid = String(question.question_id);
+
+  const value =
+    answers[qid] ??
+    answers[question.question_id];
+
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  switch (question.question_type) {
+
+    // single choice (text or image)
+    case 1:
+    case 4:
+      return String(value).trim() !== "";
+
+    // gap fill
+    case 3:
+    case 6:
+      return String(value).trim() !== "";
+
+    // word select
+    case 7:
+      return String(value).trim() !== "";
+
+    // multi select
+    case 2:
+      return Array.isArray(value) && value.length > 0;
+
+    // true / false matrix
+    case 5:
+      return (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.some(v => v !== null && v !== undefined)
+      );
+
+    default:
+      return false;
+  }
+}
+  if (!API_BASE) {
+    throw new Error("❌ REACT_APP_API_URL is not defined");
+  }
+
+  const hasSubmittedRef = useRef(false);
+
+  /**
+   * mode:
+   * - loading
+   * - exam
+   * - report
+   * - review
+   */
+  const [mode, setMode] = useState("loading");
+  const isReview = mode === "review";
+
+  // ---------------- EXAM STATE ----------------
+  const [questions, setQuestions] = useState([]);
+  const [passages, setPassages] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [visited, setVisited] = useState({});
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [correctness, setCorrectness] = useState({});
+  const [showConfirmFinish, setShowConfirmFinish] = useState(false);
+
+  // ---------------- REPORT ----------------
+  const [report, setReport] = useState(null);
+  const [examAttemptId, setExamAttemptId] = useState(null);
+
+  /* ============================================================
+     NORMALIZATION HELPERS (REUSED FROM NUMERACY)
+  ============================================================ */
+ function isAnswerCorrect(question, answers) {
+  const correct = normalizeCorrectAnswer(
+    question.exam_bundle.correct_answer,
+    question.question_type
+  );
+
+  const student = normalizeStudentAnswer(
+    answers[String(question.question_id)],
+    question.question_type
+  );
+
+  if (question.question_type === 2) {
+    console.log("TYPE 2 CHECK", {
+      qid: question.question_id,
+      correct,
+      student
+    });
+
+    if (!Array.isArray(student) || !Array.isArray(correct)) return false;
+    if (student.length !== correct.length) return false;
+
+    return student.every((v, i) => v === correct[i]);
+  }
+
+  if (question.question_type === 5) {
+    if (!Array.isArray(student) || !Array.isArray(correct)) return false;
+    if (student.length !== correct.length) return false;
+
+    return student.every((v, i) => v === correct[i]);
+  }
+
+  return student === correct;
+}
+  const normalizeCorrectAnswer = (correctAnswer, questionType) => {
+  if (correctAnswer == null) return null;
+
+  if (typeof correctAnswer === "object" && correctAnswer.value !== undefined) {
+    correctAnswer = correctAnswer.value;
+  }
+  // true false
+if (questionType === 5) {
+  if (Array.isArray(correctAnswer)) return correctAnswer;
+
+  if (typeof correctAnswer === "string") {
+    try {
+      return JSON.parse(correctAnswer.replace(/'/g, '"'));
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+  // multi select
+  if (questionType === 2) {
+    let parsed = [];
+
+    if (Array.isArray(correctAnswer)) {
+      parsed = correctAnswer;
+    } else if (typeof correctAnswer === "string") {
+      try {
+        parsed = JSON.parse(correctAnswer.replace(/'/g, '"'));
+      } catch {
+        parsed = [];
+      }
+    }
+
+    return parsed
+      .map(v => String(v).trim())
+      .sort();
+  }
+
+  // word select
+  // word select
+  if (questionType === 7) {
+    if (Array.isArray(correctAnswer)) {
+      return String(correctAnswer[0]).trim();
+    }
+  
+    return String(correctAnswer).trim();
+  }
+  return String(correctAnswer).trim();
+};
+  const normalizeStudentAnswer = (answer, questionType) => {
+  if (answer == null) return null;
+
+  if (questionType === 2) {
+    let parsed = [];
+
+    if (Array.isArray(answer)) {
+      parsed = answer;
+    } else if (typeof answer === "string") {
+      try {
+        parsed = JSON.parse(answer.replace(/'/g, '"'));
+      } catch {
+        parsed = [];
+      }
+    }
+
+    return parsed
+      .map(v => String(v).trim())
+      .sort();
+  }
+
+  if (questionType === 5) {
+    if (Array.isArray(answer)) return answer;
+
+    if (typeof answer === "string") {
+      try {
+        return JSON.parse(answer.replace(/'/g, '"'));
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  return String(answer).trim();
+};
+  /* ============================================================
+     LOAD REPORT
+  ============================================================ */
+  const loadReport = async (examId = selectedExamId) => {
+  const examParam =
+    examId != null
+      ? `&exam_id=${examId}`
+      : "";
+  console.log("🧪 REPORT MODE DEBUG", {
+    parentMode,
+    studentId,
+    examId,
+    selectedExamId
+  });
+  const reportUrl = isHomeworkMode
+  ? `${API_BASE}/api/student/exam-report/naplan-reading-homework?student_id=${studentId}${examParam}`
+  : `${API_BASE}/api/student/exam-report/naplan-reading?student_id=${studentId}${examParam}`;
+
+  const res = await fetch(reportUrl);
+
+  if (!res.ok) return;
+
+  const data = await res.json();
+
+  setReport(data);
+  setExamAttemptId(data.exam_attempt_id);
+};
+  useEffect(() => {
+  if (!studentId) return;
+
+  if (
+    mode !== "report" &&
+    mode !== "review"
+  ) {
+    return;
+  }
+
+  const loadDates = async () => {
+    try {
+      const url = isHomeworkMode
+        ? `${API_BASE}/api/student/exam-dates/naplan-reading-homework?student_id=${studentId}`
+        : `${API_BASE}/api/student/exam-dates/naplan-reading?student_id=${studentId}`;
+
+      const res = await fetch(url);
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      setExamDates(data || []);
+
+      if (
+        data?.length > 0 &&
+        selectedExamId == null
+      ) {
+        setSelectedExamId(
+          data[0].exam_id
+        );
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadDates();
+
+}, [
+  API_BASE,
+  studentId,
+  parentMode,
+  selectedExamId,
+  mode
+]);
+  
+  useEffect(() => {
+  if (mode !== "report") return;
+  if (!studentId) return;
+
+  loadReport(selectedExamId);
+
+}, [mode, selectedExamId, studentId]);
+  useEffect(() => {
+  if (!studentId) return;
+  if (mode !== "loading") return;
+
+  if (
+    parentMode === "report_actual" ||
+    parentMode === "report_homework"
+  ) {
+    setMode("report");
+    return;
+  }
+
+  if (parentMode === "review") {
+    setMode("review");
+    return;
+  }
+
+  if (
+    parentMode === "exam" ||
+    parentMode === "homework"
+  ) {
+    setMode("exam");
+    return;
+  }
+
+}, [studentId, parentMode, mode]);
+  /* ============================================================
+     START / RESUME EXAM
+  ============================================================ */
+ useEffect(() => {
+  if (!studentId) return;
+  if (mode !== "exam") return;
+  if (
+    parentMode !== "exam" &&
+    parentMode !== "homework"
+  ) return; // 🔥 safety
+
+  // reset state
+  setAnswers({});
+  setVisited({});
+  setCurrentIndex(0);
+
+  const startExam = async () => {
+  try {
+    const startUrl =
+      parentMode === "homework"
+        ? `${API_BASE}/api/student/start-homework-exam/naplan-reading`
+        : `${API_BASE}/api/student/start-exam/naplan-reading`;
+
+    const res = await fetch(
+      startUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+        body: JSON.stringify({
+          student_id:
+            studentId
+        })
+      }
+    );
+
+    const data =
+      await res.json();
+        data.questions.forEach(q => {
+        const block = q.exam_bundle?.question_blocks?.find(
+          b =>
+            b.type === "extract_matching" ||
+            b.extracts
+        );
+
+        if (block) {
+          console.log(
+            "FOUND EXTRACT BLOCK",
+            block
+          );
+        }
+      });
+
+    if (
+      data.completed === true
+    ) {
+      await loadReport();
+
+      setMode(
+        "report"
+      );
+
+      return;
+    }
+
+    setQuestions(
+      data.questions || []
+    );
+
+    setTimeLeft(
+      data.remaining_time
+    );
+
+    if (
+      data.is_resumed === true &&
+      data.answers
+    ) {
+      setAnswers(
+        data.answers
+      );
+
+      setVisited(
+        Object.fromEntries(
+          Object.keys(
+            data.answers
+          ).map(
+            (qid) => [
+              qid,
+              true
+            ]
+          )
+        )
+      );
+    }
+
+    onExamStart?.();
+
+  } catch (err) {
+    console.error(
+      "❌ Failed to start exam:",
+      err
+    );
+  }
+};
+
+startExam();
+
+}, [
+  studentId,
+  mode,
+  parentMode,
+  API_BASE,
+  onExamStart
+]);
+  /*
+  useEffect(() => {
+  document.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("copy", e => e.preventDefault());
+  document.addEventListener("cut", e => e.preventDefault());
+}, []); */
+  /* ============================================================
+     GROUP QUESTIONS BY PASSAGE
+  ============================================================ */
+  useEffect(() => {
+    if (!questions.length) return;
+
+    const map = {};
+
+    questions.forEach(q => {
+
+    // --------------------------------------------------
+    // TYPE 8: Extract Matching
+    // --------------------------------------------------
+
+    if (q.question_type === 8) {
+
+      const extractBlock = q.exam_bundle.question_blocks.find(
+        b => b.type === "extract_matching"
+      );
+
+      if (!extractBlock) {
+        return;
+      }
+
+      const sharedReadingBlock = {
+        type: "reading",
+        extracts: Object.entries(
+          extractBlock.extracts || {}
+        ).map(([key, value]) => ({
+          extract_id: key,
+          title: `Extract ${key}`,
+          content: value
+        }))
+      };
+
+      if (!map[q.passage_id]) {
+
+        map[q.passage_id] = {
+          passage_id: q.passage_id,
+          reading_block: sharedReadingBlock,
+          questions: []
+        };
+      }
+
+      // ----------------------------------------
+      // Expand internal questions
+      // ----------------------------------------
+
+      extractBlock.questions.forEach(
+        (internalQ, idx) => {
+
+          map[q.passage_id].questions.push({
+
+            ...q,
+
+            // unique frontend id
+            question_id:
+              `${q.question_id}_${idx}`,
+
+            // internal question becomes normal MCQ
+            question_type: 1,
+
+            exam_bundle: {
+
+              question_type: 1,
+
+              question_blocks: [
+                {
+                  type: "text",
+                  content: internalQ.question
+                }
+              ],
+
+              options: {
+                A: "Extract A",
+                B: "Extract B",
+                C: "Extract C",
+                D: "Extract D"
+              },
+
+              correct_answer:
+                internalQ.correct[0]
+            }
+          });
+        }
+      );
+
+      return;
+    }
+
+    // --------------------------------------------------
+    // NORMAL QUESTION TYPES
+    // --------------------------------------------------
+
+    if (!map[q.passage_id]) {
+
+      const readingBlock = q.exam_bundle.question_blocks.find(
+        b => b.type === "reading"
+      );
+
+      map[q.passage_id] = {
+        passage_id: q.passage_id,
+        reading_block: readingBlock,
+        questions: []
+      };
+    }
+
+    map[q.passage_id].questions.push(q);
+  });
+
+    setPassages(Object.values(map));
+  }, [questions]);
+
+  const flatQuestions = passages.flatMap(p => p.questions);
+  const currentQ = flatQuestions[currentIndex];
+
+  /* ============================================================
+     FINISH EXAM
+  ============================================================ */
+  const finishExam = useCallback(
+  async () => {
+    if (
+      hasSubmittedRef.current
+    ) return;
+
+    hasSubmittedRef.current =
+      true;
+
+    const finishUrl =
+      parentMode === "homework"
+        ? `${API_BASE}/api/student/finish-homework-exam/naplan-reading`
+        : `${API_BASE}/api/student/finish-exam/naplan-reading`;
+
+    await fetch(
+      finishUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+        body: JSON.stringify({
+          student_id:
+            studentId,
+          answers
+        })
+      }
+    );
+
+    await loadReport();
+
+    setMode(
+      "report"
+    );
+
+    onExamFinish?.();
+  },
+  [
+    API_BASE,
+    studentId,
+    answers,
+    parentMode,
+    loadReport,
+    onExamFinish
+  ]
+);
+
+  useEffect(() => {
+  if (mode !== "exam" || flatQuestions.length === 0) return;
+
+  // Replace initial state
+  window.history.replaceState(
+    { questionIndex: 0 },
+    "",
+    window.location.href
+  );
+
+  // Push buffer state
+  window.history.pushState(
+    { questionIndex: 0 },
+    "",
+    window.location.href
+  );
+
+}, [mode, flatQuestions.length]);
+
+useEffect(() => {
+  if (mode !== "exam") return;
+
+  if (isPopNavigationRef.current) {
+    isPopNavigationRef.current = false;
+    return;
+  }
+
+  window.history.pushState(
+    { questionIndex: currentIndex },
+    "",
+    window.location.href
+  );
+
+}, [currentIndex, mode]);
+useEffect(() => {
+  if (mode !== "exam") return;
+
+  const handlePopState = (e) => {
+    const state = e.state;
+
+    // 🔥 CASE 1: On Q1 → show submit modal
+    if (currentIndex === 0) {
+      if (!showConfirmFinish) {
+        setShowConfirmFinish(true);
+      }
+
+      // Stay on Q1
+      window.history.replaceState(
+        { questionIndex: 0 },
+        "",
+        window.location.href
+      );
+
+      // 🔥 CRITICAL: re-add buffer so user can't escape
+      window.history.pushState(
+        { questionIndex: 0 },
+        "",
+        window.location.href
+      );
+
+      return;
+    }
+
+    // 🔥 CASE 2: Normal navigation
+    if (!state || typeof state.questionIndex !== "number") {
+      return;
+    }
+
+    isPopNavigationRef.current = true;
+    setCurrentIndex(state.questionIndex);
+  };
+
+  window.addEventListener("popstate", handlePopState);
+
+  return () => {
+    window.removeEventListener("popstate", handlePopState);
+  };
+}, [mode, currentIndex, showConfirmFinish]);
+
+// here123  
+  /* ============================================================
+     TIMER
+  ============================================================ */
+  useEffect(() => {
+    if (mode !== "exam" || timeLeft == null || hasSubmittedRef.current) return;
+
+    if (timeLeft <= 0) {
+      finishExam();
+      return;
+    }
+
+    if (showConfirmFinish) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft(t => t - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timeLeft, mode, showConfirmFinish, finishExam]);
+
+  /* ============================================================
+   WARN BEFORE REFRESH / TAB CLOSE
+============================================================ */
+useEffect(() => {
+  if (mode !== "exam") return;
+
+  const handleBeforeUnload = (e) => {
+    e.preventDefault();
+    e.returnValue = "";
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [mode]);
+
+  /* ============================================================
+     ANSWERS
+  ============================================================ */
+  const handleAnswer = (value) => {
+    const qid = String(currentQ.question_id);
+    if (!qid) return;
+  
+    console.log("✍️ handleAnswer called", { qid, value });
+  
+    setAnswers(prev => {
+      const next = { ...prev, [qid]: value };
+      console.log("➡️ answers updated to:", next);
+      return next;
+    });
+  
+    setVisited(prev => ({ ...prev, [qid]: true }));
+  };
+  const toggleFlagQuestion = () => {
+
+  const qid = String(currentQ.question_id);
+
+  setFlaggedQuestions(prev => ({
+
+    ...prev,
+
+    [qid]: !prev[qid]
+
+  }));
+};
+  const goToQuestion = (idx) => {
+    if (idx < 0 || idx >= flatQuestions.length) return;
+
+    const qid = String(flatQuestions[idx].question_id);
+    setVisited(prev => ({ ...prev, [qid]: true }));
+    setCurrentIndex(idx);
+  };
+
+  const formatTime = (seconds) => {
+    const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const s = String(seconds % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  /* ============================================================
+     RENDER GUARDS
+  ============================================================ */
+  if (mode === "loading") return <p className="loading">Loading…</p>;
+  if (mode === "submitting") {
+    return (
+      <div className="loading-screen">
+        <p className="loading">Submitting exam…</p>
+      </div>
+    );
+  }
+ if (mode === "report") {
+  if (!report) {
+    return (
+      <div className="empty-state">
+        <button
+          className="back-dashboard-button"
+          onClick={onBackToDashboard}
+        >
+          ← Back
+        </button>
+
+        <h3>No reports available yet</h3>
+
+        <p>
+          You haven’t attempted any exams yet.
+          <br />
+          Complete an exam to see your performance here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        height: "100vh",
+        overflowY: "auto",
+        overflowX: "hidden"
+      }}
+    >
+      {examDates.length > 0 && (
+        <div
+          className="report-filter-row"
+          style={{
+            width: "320px",
+            maxWidth: "320px"
+          }}
+        >
+          <label className="report-label">
+            Select Date:
+          </label>
+
+          <select
+             className="report-select"
+            style={{
+              width: "180px",
+              minWidth: "180px"
+            }}
+            value={selectedExamId || ""}
+            onChange={(e) => {
+              const newId = Number(e.target.value);
+
+              console.log(
+                "Report changed:",
+                "old =", selectedExamId,
+                "new =", newId
+              );
+
+              if (newId === selectedExamId) return;
+
+              setSelectedExamId(newId);
+            }}
+          >
+            {examDates.map((item) => (
+              <option
+                key={item.exam_id}
+                value={item.exam_id}
+              >
+                {new Date(item.date).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true
+                })}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <NaplanReadingReport
+        report={report}
+        examDates={examDates}
+        selectedExamId={selectedExamId}
+        onExamChange={(id) => {
+          setSelectedExamId(id);
+        }}
+        onViewExamDetails={() => {
+          setQuestions([]);
+          setAnswers({});
+          setVisited({});
+          setCurrentIndex(0);
+          setMode("review");
+        }}
+        onBackToDashboard={onBackToDashboard}
+      />
+    </div>
+  );
+}
+
+  if (
+  mode === "review" &&
+  !questions.length
+) {
+  return (
+    <>
+      {examDates.length > 0 && (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "20px"
+    }}
+  >
+    <div className="report-filter-row">
+      <label className="report-label">
+        Select Date:
+      </label>
+
+      <select
+        className="report-select"
+        value={selectedExamId || ""}
+        onChange={(e) => {
+          setQuestions([]);
+          setAnswers({});
+          setVisited({});
+          setCurrentIndex(0);
+
+          setSelectedExamId(Number(e.target.value));
+        }}
+      >
+        {examDates.map((item) => (
+          <option
+            key={item.exam_id}
+            value={item.exam_id}
+          >
+            {new Date(item.date).toLocaleString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true
+            })}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+)}
+
+      <NaplanReadingReview
+        studentId={studentId}
+        selectedExamId={selectedExamId}
+        parentMode={parentMode}
+        onLoaded={(qs, ans) => {
+          setQuestions(qs);
+          setCurrentIndex(0);
+          setVisited({});
+
+          const cleanedAnswers = {};
+          const correctnessMap = {};
+
+          Object.entries(ans || {}).forEach(([qid, obj]) => {
+            const question = qs.find(
+              q => String(q.question_id) === String(qid)
+            );
+
+            // TYPE 8 grouped answers only
+            if (question?.question_type === 8 && Array.isArray(obj.answer)) {
+              obj.answer.forEach((internalAnswer, idx) => {
+                const internalId = `${qid}_${idx}`;
+
+                cleanedAnswers[internalId] = internalAnswer;
+
+                // If you trust backend for type 8, keep this
+                correctnessMap[internalId] =
+                  Array.isArray(obj.is_correct)
+                    ? obj.is_correct[idx]
+                    : false;
+              });
+
+              return;
+            }
+
+            // NORMAL QUESTION TYPES
+            const normalizedAnswer = normalizeStudentAnswer(
+              obj.answer,
+              question?.question_type
+            );
+
+            cleanedAnswers[qid] = normalizedAnswer;
+
+            correctnessMap[qid] = question
+              ? isAnswerCorrect(question, {
+                  [String(qid)]: normalizedAnswer
+                })
+              : false;
+          });
+
+          setAnswers(cleanedAnswers);
+          setCorrectness(correctnessMap);
+        }}
+      />
+    </>
+  );
+}
+
+  if (!currentQ) return null;
+
+  /* ============================================================
+     REVIEW CORRECTNESS
+  ============================================================ */
+  const isCorrect =
+  mode === "review"
+    ? isAnswerCorrect(currentQ, answers)
+    : null;
+  const qid = String(currentQ.question_id);
+  /* ============================================================
+     CURRENT PASSAGE
+  ============================================================ */
+  const currentPassage = passages.find(p =>
+    p.questions.some(q => q.question_id === currentQ.question_id)
+  );
+  console.log(
+    "READING BLOCK:",
+    currentPassage?.reading_block
+  );
+  currentQ?.exam_bundle?.question_blocks?.forEach((block, i) => {
+    console.log("BLOCK", i, {
+      type: block.type,
+      content: block.content,
+      text: block.text
+    });
+  });
+  console.log("🧠 ACTUAL RENDER answers:", answers);
+
+  return (
+     <>
+    <div className={`exam-shell ${mode === "review" ? "review-mode" : ""}`}>
+      
+
+      
+      <div className="exam-container">
+
+        {/* HEADER */}
+        <div className="exam-header">
+          {!isReview && (
+            <div className="timer">
+              ⏳ {formatTime(timeLeft)}
+            </div>
+          )}
+
+          <div className="question-counter-inline">
+            <span className="question-counter-text">
+              Question {currentIndex + 1} of {flatQuestions.length}
+            </span>
+
+            <button
+              className="question-grid-toggle"
+              onClick={() =>
+                setShowQuestionNavigator(prev => !prev)
+              }
+            >
+              ▦
+            </button>
+
+            {isReview && (
+              <>
+                <button
+                  className="exit-review-btn"
+                  onClick={() => {
+                    setQuestions([]);
+                    setAnswers({});
+                    setVisited({});
+                    setCurrentIndex(0);
+                    setMode("report");
+                  }}
+                >
+                  ← Exit Review
+                </button>
+
+                {examDates.length > 0 && (
+                  <select
+                    className="review-exam-dropdown"
+                    value={selectedExamId || ""}
+                    onChange={(e) => {
+                      setQuestions([]);
+                      setAnswers({});
+                      setVisited({});
+                      setCurrentIndex(0);
+
+                      setSelectedExamId(Number(e.target.value));
+                    }}
+                  >
+                    {examDates.map((item) => (
+                      <option
+                        key={item.exam_id}
+                        value={item.exam_id}
+                      >
+                        {new Date(item.date).toLocaleString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true
+                          }
+                        )}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="exam-header-actions">
+  <div className="header-nav-buttons">
+    <button
+      className="nav-btn prev"
+      disabled={currentIndex === 0}
+      onClick={() => goToQuestion(currentIndex - 1)}
+    >
+      Previous
+    </button>
+
+    {!isReview && (
+      <button
+        className={`flag-btn ${
+          flaggedQuestions[String(currentQ.question_id)] ? "flagged" : ""
+        }`}
+        onClick={toggleFlagQuestion}
+      >
+        🚩 {flaggedQuestions[String(currentQ.question_id)] ? "Unflag" : "Flag"}
+      </button>
+    )}
+
+    {isReview ? (
+      <button
+        className="nav-btn next"
+        disabled={currentIndex === flatQuestions.length - 1}
+        onClick={() => goToQuestion(currentIndex + 1)}
+      >
+        Next
+      </button>
+    ) : currentIndex < flatQuestions.length - 1 ? (
+      <button
+        className="nav-btn next"
+        onClick={() => goToQuestion(currentIndex + 1)}
+      >
+        Next
+      </button>
+    ) : (
+      <button
+        className="nav-btn finish"
+        disabled={mode === "submitting"}
+        onClick={() => setShowConfirmFinish(true)}
+      >
+        Finish Exam
+      </button>
+    )}
+  </div>
+</div>
+        </div>
+         {/* QUESTION INDEX BAR */}
+        {showQuestionNavigator && (
+
+            <div className="question-index-wrapper">
+              {!isReview && (
+              <div className="question-summary-row">
+
+                <div className="summary-item">
+                  <span className="summary-count">
+                    {flatQuestions.filter(q =>
+                      hasAnswered(q, answers)
+                    ).length}
+                  </span>
+
+                  <span className="summary-label">
+                    Answered
+                  </span>
+                </div>
+
+                <div className="summary-item">
+                  <span className="summary-count">
+                    {
+                      flatQuestions.length -
+                      flatQuestions.filter(q =>
+                        hasAnswered(q, answers)
+                      ).length
+                    }
+                  </span>
+
+                  <span className="summary-label">
+                    Not answered
+                  </span>
+                </div>
+
+                <div className="summary-item">
+                  <span className="summary-count">
+                    {
+                      flatQuestions.filter(q =>
+                        !visited[String(q.question_id)]
+                      ).length
+                    }
+                  </span>
+
+                  <span className="summary-label">
+                    Not read
+                  </span>
+                </div>
+
+                <div className="summary-item">
+                  <span className="summary-count">
+                    {
+                      Object.values(flaggedQuestions)
+                        .filter(Boolean)
+                        .length
+                    }
+                  </span>
+
+                  <span className="summary-label">
+                    Flagged
+                  </span>
+                </div>
+
+              </div>
+            )}
+              <div className="question-index-bar">
+
+                {flatQuestions.map((q, idx) => {
+
+                  const isAnswered = hasAnswered(
+                    q,
+                    answers
+                  );
+
+                  const isCurrent =
+                    idx === currentIndex;
+
+                  let reviewClass = "";
+
+                  if (mode === "review") {
+
+                    const correctFlag =
+                      correctness[
+                        String(q.question_id)
+                      ];
+
+                    reviewClass =
+                      correctFlag
+                        ? "correct"
+                        : "incorrect";
+                  }
+                  
+
+                  return (
+                    <button
+                      key={q.question_id}
+                      className={[
+                        "question-index-item",
+
+                        mode === "review"
+                          ? reviewClass
+                          : isAnswered
+                          ? "answered"
+                          : "unanswered",
+
+                        isCurrent
+                          ? "current"
+                          : ""
+
+                      ].join(" ")}
+
+                      onClick={() => {
+
+                        goToQuestion(idx);
+
+                        if (!isReview) {
+                          setShowQuestionNavigator(false);
+                        }
+                      }}
+                    >
+
+                      <div className="question-index-content">
+
+                        <span>
+                          {idx + 1}
+                        </span>
+
+                        {
+                          flaggedQuestions[
+                            String(q.question_id)
+                          ] && (
+                            <span className="question-flag">
+                              🚩
+                            </span>
+                          )
+                        }
+
+                      </div>
+
+                    </button>
+                  );
+                })}
+
+              </div>
+
+            </div>
+
+          )
+        }
+        <div
+          className="exam-body reading-mode"
+          style={{
+            alignItems: "flex-start"
+          }}
+        >
+
+        {/* LEFT: PASSAGE(S) */}
+        {currentPassage?.reading_block && (
+          <div className="passage-pane extract-matching-pane">
+
+            {/* ---------------------------------- */}
+            {/* Extract Tabs */}
+            {/* ---------------------------------- */}
+
+            <div className="extract-tabs-wrapper">
+              <div className="extract-tabs-label">
+                Reading texts
+              </div>
+
+              <div className="extract-tabs" role="tablist" aria-label="Reading texts">
+                {currentPassage.reading_block.extracts.map((ext, idx) => {
+                  const isActive = activeExtract === idx;
+
+                  return (
+                    <button
+                      key={ext.extract_id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      className={`extract-tab ${isActive ? "active" : "inactive"}`}
+                      onClick={() => setActiveExtract(idx)}
+                    >
+                      <span className="extract-tab-badge">
+                        Text {String.fromCharCode(65 + idx)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ---------------------------------- */}
+            {/* Active Extract */}
+            {/* ---------------------------------- */}
+
+            {currentPassage.reading_block.extracts[activeExtract] && (() => {
+              const ext = currentPassage.reading_block.extracts[activeExtract];
+
+              return (
+                <div className="extract-content">
+                  <div className="extract-active-indicator">
+                    Now viewing: <strong>Text {String.fromCharCode(65 + activeExtract)}</strong>
+                  </div>
+
+                  <h2 className="extract-heading">
+                    {ext.title || `Extract ${ext.extract_id}`}
+                  </h2>
+
+                  <div className="extract-text">
+                    {ext.content}
+                  </div>
+
+                  {ext.images?.map(img => (
+                    <img
+                      key={img}
+                      src={img}
+                      alt=""
+                      className="extract-image"
+                    />
+                  ))}
+                </div>
+              );
+            })()}
+
+          </div>
+          )}
+
+        {/* RIGHT: SINGLE QUESTION */}
+        <div
+          className="question-pane"
+          style={{
+            flex: 1,
+            paddingRight: "8px",
+            overflowY: "visible",
+            alignSelf: "flex-start"
+          }}
+        >
+          
+          <div
+            className="question-card"
+            style={{
+              height: "auto",
+              minHeight: "unset"
+            }}
+          >
+            
+            <div className="question-header">
+              {mode === "review" && (
+                <button
+                  className="explain-btn-inline"
+                  onClick={() => handleGenerateExplanationForReading(currentQ)}
+                  disabled={loadingExplanation === qid}
+                >
+                  {loadingExplanation === qid
+                    ? "Generating..."
+                    : explanations[qid]
+                    ? "💡 Regenerate"
+                    : "💡 Explain"}
+                </button>
+              )}
+            </div>
+
+            {/* 1️⃣ QUESTION TEXT / STRUCTURE */}
+            {currentQ.exam_bundle.question_blocks
+              .filter(b => b.type !== "reading")
+              .map((block, idx) => {
+                 // ✅ ADD THIS FIRST
+                if (block.type === "instruction") {
+                  return (
+                    <p key={idx} className="question-instruction">
+                      {block.text}
+                    </p>
+                  );
+                }
+
+                if (
+                  block.content &&
+                  !["gap_fill", "single_gap", "word_select", "true_false"].includes(block.type)
+                ) {
+                  return <p key={idx}>{block.content}</p>;
+                }
+
+                if (block.type === "gap_fill") {
+                  const qid = String(currentQ.question_id);
+
+                  return (
+                    <div key={idx} className="gap-fill-block">
+                      {/* Sentence */}
+                      <p className="gap-fill-text">
+                        {block.content}
+                      </p>
+
+                      {/* Word bank (if present) */}
+                      {
+                        block.word_bank?.length > 0 && (
+
+                          <select
+                            className="gap-dropdown"
+
+                            value={
+                              answers[qid] || ""
+                            }
+
+                            disabled={isReview}
+
+                            onChange={(e) =>
+                              handleAnswer(
+                                e.target.value
+                              )
+                            }
+                          >
+
+                            <option value="">
+                              Select an answer
+                            </option>
+
+                            {
+                              block.word_bank.map(
+                                (word) => (
+                                  <option
+                                    key={word}
+                                    value={word}
+                                  >
+                                    {word}
+                                  </option>
+                                )
+                              )
+                            }
+
+                          </select>
+
+                        )
+                      }
+
+                      {/* Free-text fallback */}
+                      {!block.word_bank?.length && (
+                        <input
+                          className="text-input"
+                          value={answers[qid] || ""}
+                          onChange={(e) => handleAnswer(e.target.value)}
+                          disabled={isReview}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                if (block.type === "single_gap") {
+  const qid = String(currentQ.question_id);
+  const [before, after] = block.content.split("[BLANK]");
+
+  const correct = normalizeCorrectAnswer(
+    currentQ.exam_bundle.correct_answer,
+    currentQ.question_type
+  );
+
+  const student = normalizeStudentAnswer(
+    answers[qid],
+    currentQ.question_type
+  );
+
+  const correctLabel = block.options?.[correct] || correct || "—";
+  const studentLabel = block.options?.[student] || student || "—";
+
+  const isCorrect =
+    String(student || "").trim().toUpperCase() ===
+    String(correct || "").trim().toUpperCase();
+
+  return (
+    <div key={idx} className="gap-fill-block">
+      <p className="gap-fill-text inline-gap">
+        {before}
+
+        {isReview ? (
+          <span
+            style={{
+              display: "inline-block",
+              minWidth: "140px",
+              padding: "8px 12px",
+              margin: "0 6px",
+              borderRadius: "8px",
+              border: isCorrect
+                ? "2px solid #22c55e"
+                : "2px solid #ef4444",
+              backgroundColor: isCorrect ? "#dcfce7" : "#fee2e2",
+              fontWeight: 600,
+              color: "#111827",
+              textAlign: "center"
+            }}
+          >
+            {studentLabel}
+          </span>
+        ) : (
+          <select
+            className="gap-dropdown inline"
+            value={answers[qid] || ""}
+            disabled={isReview}
+            onChange={(e) => handleAnswer(e.target.value)}
+          >
+            <option value="">Select an answer</option>
+            {Object.entries(block.options).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {after}
+      </p>
+
+      {isReview && !isCorrect && (
+        <div
+          style={{
+            marginTop: "10px",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            background: "#f0fdf4",
+            border: "1px solid #22c55e",
+            color: "#166534",
+            fontWeight: 500
+          }}
+        >
+          Correct answer: {correctLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+                if (block.type === "word_select") {
+                  const qid = String(currentQ.question_id);
+                  const selected = answers[qid] || null;
+
+                  const correct = normalizeCorrectAnswer(
+                    currentQ.exam_bundle.correct_answer,
+                    currentQ.question_type
+                  );
+
+                  const text = (block.text || block.content || "")
+                    .replace("/n", "\n")
+                    .replace("eat pies,plums", "eats pies, plums")
+                    .replace("off bug", "odd bug");
+
+                  const optionWords = Array.isArray(block.options)
+                    ? block.options.map(w => String(w).trim())
+                    : [];
+
+                  const tokens = text.split(/(\s+)/); // keep spaces
+
+                  return (
+                    <p key={idx} className="word-select-text">
+                      {tokens.map((token, i) => {
+                        const clean = token.replace(/[.,!?;:]/g, "").trim();
+
+                        const isOption = optionWords.includes(clean);
+                        const isSelected = String(selected || "").trim() === clean;
+                        const isCorrectOption =
+                          isReview && String(clean).trim() === String(correct || "").trim();
+                        const isWrongSelection =
+                          isReview &&
+                          isSelected &&
+                          String(clean).trim() !== String(correct || "").trim();
+
+                        if (!isOption) {
+                          return <span key={i}>{token}</span>;
+                        }
+
+                        let backgroundColor = "#f3f4f6"; // default visible selectable word bg
+                        let border = "1px solid #d1d5db";
+                        let fontWeight = "500";
+
+                        if (!isReview && isSelected) {
+                          backgroundColor = "#dbeafe";
+                          border = "1px solid #3b82f6";
+                          fontWeight = "600";
+                        }
+
+                        if (isReview && isCorrectOption) {
+                          backgroundColor = "#dcfce7";
+                          border = "1px solid #22c55e";
+                          fontWeight = "600";
+                        }
+
+                        if (isReview && isWrongSelection) {
+                          backgroundColor = "#fee2e2";
+                          border = "1px solid #ef4444";
+                          fontWeight = "600";
+                        }
+
+                        return (
+                          <span
+                            key={i}
+                            onClick={() => {
+                              if (!isReview) {
+                                handleAnswer(clean);
+                              }
+                            }}
+                            style={{
+                              display: "inline-block",
+                              padding: "4px 10px",
+                              margin: "2px 3px",
+                              borderRadius: "8px",
+                              cursor: isReview ? "default" : "pointer",
+                              backgroundColor,
+                              border,
+                              fontWeight,
+                              color: "#111827",
+                              lineHeight: "1.6"
+                            }}
+                          >
+                            {clean}
+                          </span>
+                        );
+                      })}
+                    </p>
+                  );
+                }
+
+                if (block.type === "true_false") {
+                  const qid = String(currentQ.question_id);
+
+                  const selectedAnswers = Array.isArray(answers[qid])
+                    ? answers[qid]
+                    : [];
+
+                  const correctAnswers = normalizeCorrectAnswer(
+                    currentQ.exam_bundle.correct_answer,
+                    currentQ.question_type
+                  );
+
+                  return (
+                    <div key={idx} className="tf-question">
+                      <p className="tf-instruction">
+                        Which of these statements are true and which are false?
+                      </p>
+
+                      <div className="tf-grid">
+                        {/* Header */}
+                        <div className="tf-grid-header">
+                          <span></span>
+                          <span>True</span>
+                          <span>False</span>
+                        </div>
+
+                        {block.statements.map((stmt, i) => {
+                          const studentValue = selectedAnswers[i] || null;
+                          const correctValue = Array.isArray(correctAnswers)
+                            ? correctAnswers[i]
+                            : null;
+
+                          const isTrueSelected = studentValue === "True";
+                          const isFalseSelected = studentValue === "False";
+
+                          const trueIsCorrectOption = correctValue === "True";
+                          const falseIsCorrectOption = correctValue === "False";
+
+                          const trueIsWrongSelected =
+                            isReview &&
+                            isTrueSelected &&
+                            correctValue !== "True";
+
+                          const falseIsWrongSelected =
+                            isReview &&
+                            isFalseSelected &&
+                            correctValue !== "False";
+
+                          return (
+                            <div key={i} className="tf-grid-row">
+                              <span className="tf-statement">{stmt}</span>
+
+                              {/* TRUE CELL */}
+                              <div
+                                className="tf-cell"
+                                style={{
+                                  backgroundColor: isReview
+                                    ? trueIsCorrectOption
+                                      ? "#dcfce7"
+                                      : trueIsWrongSelected
+                                      ? "#fee2e2"
+                                      : "#fff"
+                                    : isFalseSelected
+                                    ? "#f3f4f6"
+                                    : "#fff",
+
+                                  border: isReview
+                                    ? trueIsCorrectOption
+                                      ? "2px solid #22c55e"
+                                      : trueIsWrongSelected
+                                      ? "2px solid #ef4444"
+                                      : "1px solid #e5e7eb"
+                                    : isFalseSelected
+                                    ? "1px solid #d1d5db"
+                                    : "1px solid #e5e7eb",
+
+                                  opacity: !isReview && isFalseSelected ? 0.65 : 1,
+                                  borderRadius: "8px",
+                                  padding: "8px 10px",
+                                  display: "flex",
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  minHeight: "42px",
+                                  transition: "all 0.2s ease"
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`tf-${qid}-${i}`}
+                                  checked={isTrueSelected}
+                                  disabled={isReview}
+                                  onChange={() => {
+                                    const updated = [...selectedAnswers];
+                                    updated[i] = "True";
+                                    handleAnswer(updated);
+                                  }}
+                                />
+                              </div>
+
+                              {/* FALSE CELL */}
+                              <div
+                                className="tf-cell"
+                                style={{
+                                  backgroundColor: isReview
+                                    ? falseIsCorrectOption
+                                      ? "#dcfce7"
+                                      : falseIsWrongSelected
+                                      ? "#fee2e2"
+                                      : "#fff"
+                                    : isTrueSelected
+                                    ? "#f3f4f6"
+                                    : "#fff",
+
+                                  border: isReview
+                                    ? falseIsCorrectOption
+                                      ? "2px solid #22c55e"
+                                      : falseIsWrongSelected
+                                      ? "2px solid #ef4444"
+                                      : "1px solid #e5e7eb"
+                                    : isTrueSelected
+                                    ? "1px solid #d1d5db"
+                                    : "1px solid #e5e7eb",
+
+                                  opacity: !isReview && isTrueSelected ? 0.65 : 1,
+                                  borderRadius: "8px",
+                                  padding: "8px 10px",
+                                  display: "flex",
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  minHeight: "42px",
+                                  transition: "all 0.2s ease"
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`tf-${qid}-${i}`}
+                                  checked={isFalseSelected}
+                                  disabled={isReview}
+                                  onChange={() => {
+                                    const updated = [...selectedAnswers];
+                                    updated[i] = "False";
+                                    handleAnswer(updated);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
+              })}
+
+            {/* 2️⃣ OPTIONS — RENDER ONCE PER QUESTION */}
+            {(() => {
+              if ([6, 7].includes(currentQ.question_type)) {
+                return null;
+              }
+
+              const imageOptions = currentQ.exam_bundle.image_options;
+              const textOptions =
+                currentQ.exam_bundle.options ||
+                currentQ.options ||
+                {};
+              const optionsSource = imageOptions || textOptions;
+
+              if (!optionsSource || Object.keys(optionsSource).length === 0) {
+                console.warn("⚠️ No options found for question:", currentQ);
+                return null;
+              }
+
+              // MULTI SELECT
+              // MULTI SELECT — checkbox list (vertical) #here
+              if (currentQ.question_type === 2) {
+                const selected =
+                  normalizeStudentAnswer(
+                    answers[String(currentQ.question_id)],
+                    currentQ.question_type
+                  ) || [];
+
+                const correct = normalizeCorrectAnswer(
+                  currentQ.exam_bundle.correct_answer,
+                  currentQ.question_type
+                );
+
+                return (
+                  <div
+                    className="mcq-options list"
+                    style={{
+                      maxHeight: "none",
+                      overflowY: "visible"
+                    }}
+                  >
+                    {Object.entries(optionsSource).map(([k, v]) => {
+                      const isSelected = selected.includes(k);
+
+                      const correctArray = Array.isArray(correct) ? correct : [];
+                      const isCorrectOption = correctArray.includes(k);
+                      
+                      let optionClass = "";
+
+                      if (isReview) {
+                        if (isSelected && isCorrectOption) {
+                          optionClass = "option-correct";
+                        } else if (isSelected && !isCorrectOption) {
+                          optionClass = "option-wrong";
+                        } else if (!isSelected && isCorrectOption) {
+                          optionClass = "option-correct";
+                        }
+                      }
+                      return (
+                        <label
+                          key={k}
+                          className={`mcq-option-row ${isSelected && !isReview ? "selected" : ""} ${optionClass}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isReview}
+                            onChange={() => {
+                              let updated;
+
+                              if (isSelected) {
+                                updated = selected.filter(x => x !== k);
+                              } else {
+                                if (selected.length >= TYPE_2_MAX_SELECTIONS) return;
+                                updated = [...selected, k];
+                              }
+
+                              handleAnswer(updated);
+                            }}
+                          />
+
+                          <span className="option-text">
+                            {k}. {v}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // SINGLE CHOICE
+              const selected = answers[String(currentQ.question_id)];
+
+              // 🖼️ IMAGE OPTIONS → cards
+              if (imageOptions) {
+                const correct = normalizeCorrectAnswer(
+                  currentQ.exam_bundle.correct_answer,
+                  currentQ.question_type
+                );
+
+                const student = normalizeStudentAnswer(
+                  answers[String(currentQ.question_id)],
+                  currentQ.question_type
+                );
+
+                return (
+                  <div className="mcq-options image-list">
+                    {Object.entries(imageOptions).map(([k, v]) => {
+                      const optionKey = String(k).trim().toUpperCase();
+
+                      const normalizedCorrect =
+                        correct != null ? String(correct).trim().toUpperCase() : "";
+
+                      const normalizedStudent =
+                        student != null ? String(student).trim().toUpperCase() : "";
+
+                      const isSelected = normalizedStudent === optionKey;
+
+                      const isCorrectOption =
+                        mode === "review" && optionKey === normalizedCorrect;
+
+                      const isWrongSelection =
+                        mode === "review" &&
+                        optionKey === normalizedStudent &&
+                        normalizedStudent !== normalizedCorrect;
+
+                      return (
+                        <label
+                          key={k}
+                          className={[
+                            "mcq-option-card",
+                            isSelected && mode !== "review" ? "selected" : "",
+                            isCorrectOption ? "option-correct" : "",
+                            isWrongSelection ? "option-wrong" : ""
+                          ].join(" ")}
+                        >
+                          <input
+                            type="radio"
+                            name={`q-${currentQ.question_id}`}
+                            checked={isSelected}
+                            disabled={isReview}
+                            onChange={() => handleAnswer(k)}
+                          />
+                          <img src={v} alt={`Option ${k}`} className="option-image" />
+                        </label>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // 📝 TEXT OPTIONS → radio list
+              return (
+                <div
+                  className="mcq-options list"
+                  style={{
+                    maxHeight: "none",
+                    overflowY: "visible"
+                  }}
+                >
+                  {Object.entries(textOptions).map(([k, v]) => {
+                    const optionKey = String(k).trim().toUpperCase();
+
+                    const correct = normalizeCorrectAnswer(
+                      currentQ.exam_bundle.correct_answer,
+                      currentQ.question_type
+                    );
+
+                    const student = normalizeStudentAnswer(
+                      answers[String(currentQ.question_id)],
+                      currentQ.question_type
+                    );
+
+                    const normalizedCorrect =
+                      correct != null ? String(correct).trim().toUpperCase() : "";
+
+                    const normalizedStudent =
+                      student != null ? String(student).trim().toUpperCase() : "";
+
+                    const isSelected = normalizedStudent === optionKey;
+
+                    const isCorrectOption =
+                      mode === "review" && optionKey === normalizedCorrect;
+
+                    const isWrongSelection =
+                      mode === "review" &&
+                      optionKey === normalizedStudent &&
+                      normalizedStudent !== normalizedCorrect;
+
+                    return (
+                      <label
+                        key={k}
+                        className={[
+                          "mcq-option-row",
+                          isSelected && mode !== "review" ? "selected" : "",
+                          isCorrectOption ? "option-correct" : "",
+                          isWrongSelection ? "option-wrong" : ""
+                        ].join(" ")}
+                      >
+                        <input
+                          type="radio"
+                          name={`q-${currentQ.question_id}`}
+                          checked={isSelected}
+                          disabled={isReview}
+                          onChange={() => handleAnswer(k)}
+                        />
+
+                        <span className="option-text">
+                          {k}. {v}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {explanations[qid] && (
+              <div
+                className="ai-explanation-inline"
+                ref={explanationRef}
+              >
+                <div className="ai-explanation-title">
+                  Explanation
+                </div>
+
+                <div
+                  className="ai-explanation-content"
+                  dangerouslySetInnerHTML={{
+                    __html: formatExplanationHtml(explanations[qid])
+                  }}
+                />
+              </div>
+            )}
+            
+          </div>
+        </div>
+
+      </div>
+
+        {mode === "review" && (() => {
+          const correct = normalizeCorrectAnswer(
+            currentQ.exam_bundle.correct_answer,
+            currentQ.question_type
+          );
+        
+          const student = normalizeStudentAnswer(
+            answers[String(currentQ.question_id)],
+            currentQ.question_type
+          );
+        
+          let displayCorrect = "—";
+          let displayStudent = "—";
+          
+          /* ------------------------------------------------
+             Resolve option source (normal or single_gap)
+          ------------------------------------------------ */
+          
+          let optionMap = currentQ.exam_bundle.options;
+          
+          if (!optionMap) {
+            const gapBlock = currentQ.exam_bundle.question_blocks?.find(
+              b => b.type === "single_gap"
+            );
+            if (gapBlock?.options) {
+              optionMap = gapBlock.options;
+            }
+          }
+          
+          /* ---------- Correct Answer ---------- */
+          
+          if (correct != null) {
+          
+            if (Array.isArray(correct)) {
+              displayCorrect = correct
+                .map(k => optionMap?.[k] || k)
+                .join(", ");
+            } else {
+              displayCorrect = optionMap?.[correct] || correct;
+            }
+          
+          }
+          
+          /* ---------- Student Answer ---------- */
+
+          if (student != null) {
+          
+            if (Array.isArray(student)) {
+              displayStudent = student
+                .map(k => optionMap?.[k] || k)
+                .join(", ");
+            } else {
+              displayStudent = optionMap?.[student] || student;
+            }
+          
+          }
+          return (
+            <>
+              
+              {/* EXISTING RESULT BOX */}
+              <div className={`review-result ${isCorrect ? "answer-correct" : "answer-wrong"}`}>
+                
+                <div className="review-status">
+                  {isCorrect ? "✔ Correct" : "✖ Incorrect"}
+                </div>
+          
+                <div className="review-details">
+                  <div>
+                    <strong>Your answer:</strong> {displayStudent || "—"}
+                  </div>
+          
+                  {!isCorrect && (
+                    <div>
+                      <strong>Correct answer:</strong> {displayCorrect}
+                    </div>
+                  )}
+                </div>
+              </div>
+          
+              
+            </>
+          );
+         
+        })()}
+
+        
+      </div>
+
+      
+    </div>
+    {showConfirmFinish && (
+      <div className="confirm-overlay">
+        <div className="confirm-modal">
+          <h3>Finish Exam?</h3>
+
+          <p>You won’t be able to change answers.</p>
+
+          <div className="confirm-actions">
+            <button onClick={() => setShowConfirmFinish(false)}>
+              Cancel
+            </button>
+
+            <button
+              onClick={() => {
+                setShowConfirmFinish(false);
+                setMode("submitting");
+                finishExam();
+              }}
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
+    
+    
+  );
+}
+

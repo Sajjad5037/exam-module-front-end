@@ -1,0 +1,1808 @@
+/* ============================================
+   TOPIC-WISE PERFORMANCE (MODERN)
+============================================ */
+
+.topic-performance-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.topic-performance-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  color: #111827;
+}
+
+/* Each topic row */
+.topic-row {
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.topic-row:last-child {
+  border-bottom: none;
+}
+
+/* Topic name */
+.topic-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+/* Stacked bar container */
+.stack-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f3f4f6;
+  margin-bottom: 10px;
+}
+
+/* Individual segments */
+.stack {
+  height: 100%;
+}
+
+.stack.correct {
+  background-color: #10b981; /* green */
+}
+
+.stack.incorrect {
+  background-color: #ef4444; /* red */
+}
+
+.stack.not-attempted {
+  background-color: #d1d5db; /* gray */
+}
+
+/* Metrics row */
+.topic-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.topic-metrics span {
+  background: #f9fafb;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* Semantic coloring */
+.topic-metrics .correct {
+  color: #065f46;
+  background: #ecfdf5;
+}
+
+.topic-metrics .incorrect {
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+.topic-metrics .not-attempted {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.exam-container {
+  width: 100%;
+  min-height: 100%;        /* allow content expansion */
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;  /* header → body → nav */
+
+  overflow: visible;       /* allow children to extend */
+  box-sizing: border-box;
+}
+/* ============================================
+   EXAM SHELL — CORRECT FIX
+============================================ */
+.exam-shell {
+  width: 100%;
+  min-height: 100vh;      /* allow page to grow beyond viewport */
+  margin: 0;
+  padding: 0;
+
+  display: block;
+
+  overflow-y: auto;       /* enable vertical scrolling */
+  overflow-x: hidden;
+
+  background: #f5f7fb;
+  box-sizing: border-box;
+}
+/* ============================================
+   EXAM CONTENT (CARD)
+============================================ */
+/* === FINAL FULL-WIDTH FIX === */
+
+
+
+/* ============================================
+   EXAM ROOT — WIDTH UNLOCK
+============================================ */
+.exam-root {
+  width: 100%;
+  max-width: none;
+  min-width: 0;        /* 🔥 critical for flex layouts */
+  display: block;
+}
+
+
+/* ============================================
+   FULL WIDTH EXAM CONTAINER
+============================================ */
+
+/* ============================================
+   HEADER
+============================================ */
+.exam-header {
+  display: block;          /* 🔥 stop flex from interfering */
+  margin-bottom: 18px;
+
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.timer {
+  color: #dc2626;
+}
+
+.counter {
+  color: #1e3a8a;
+}
+
+
+/* ============================================
+   QUESTION NUMBER SCROLLER (FIXED)
+============================================ */
+
+/* Base circle (neutral / unanswered fallback) */
+.index-circle {
+  min-width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+
+  background-color: #ffffff;   /* default = NOT VISITED */
+  border: 1px solid #cbd5e1;
+  color: #475569;
+
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Answered */
+/* Current question */
+.index-circle.index-current {
+  background-color: #22c55e !important;
+  border-color: #22c55e;
+  color: #ffffff;
+}
+
+/* ============================================
+   QUESTION CARD
+============================================ */
+.question-card {
+  display: flex;              /* 🔥 MISSING LINE */
+  flex-direction: column;     /* 🔥 critical */
+
+  background: #ffffff;
+  width: 100%;
+  padding: 28px 32px;
+  border-radius: 14px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  box-sizing: border-box;
+}
+.question-text {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+  text-align: left;          /* ✅ FIX */
+  max-width: 720px;          /* ✅ improves readability */
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 1200px) {
+  .question-card {
+    padding: 32px 48px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .question-card {
+    padding: 40px 64px;
+  }
+}
+
+/* ============================================
+   OPTIONS
+============================================ */
+.option-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+
+  width: 100%;
+  text-align: left;
+
+  padding: 10px 12px;
+  min-height: 70px;
+
+  line-height: 1.4;
+  font-size: 15px;
+
+  white-space: normal;
+  word-break: break-word;
+
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: #f1f5f9;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.option-btn > strong {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.option-btn .option-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.option-btn:hover {
+  background: #e2e8f0;
+}
+
+.option-btn.selected {
+  background: #dcfce7;
+  border-color: #22c55e;
+}
+
+
+/* ============================================
+   NAV BUTTONS
+============================================ */
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.nav-btn {
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-size: 16px;
+}
+
+.nav-btn.prev {
+  background: #e2e8f0;
+}
+
+.nav-btn.next {
+  background: #22c55e;
+  color: white;
+}
+
+.nav-btn.finish {
+  background: #16a34a;
+  color: white;
+}
+
+
+/* ============================================
+   LOADING / COMPLETED
+============================================ */
+.loading {
+  text-align: center;
+  margin-top: 100px;
+  font-size: 22px;
+}
+
+.completed-screen {
+  text-align: center;
+  margin-top: 100px;
+  font-size: 20px;
+}
+
+
+/* ============================================
+   READING MODE (unchanged)
+============================================ */
+.reading-mode .exam-body {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* ============================================
+   READING MODE — ULTRA WIDE SCREENS
+============================================ */
+@media (min-width: 1400px) {
+  .reading-mode .passage-pane {
+    max-width: 50%;
+    flex: 0 0 50%;
+  }
+
+  .reading-mode .question-pane {
+    max-width: 50%;
+    flex: 0 0 50%;
+  }
+}
+
+/* ============================================
+   WRITING EXAM — FIXED FULL WIDTH
+============================================ */
+.writing-container {
+  width: 100%;
+  max-width: 100%;      /* ✅ FIX: now full width */
+  padding: 20px 40px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.writing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.writing-meta p {
+  margin: 4px 0;
+  font-size: 18px;
+}
+
+.writing-question-box {
+  background: #f7f7f7;
+  padding: 18px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.writing-text {
+  white-space: pre-wrap;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* COLLAPSIBLE INSTRUCTIONS */
+.instructions-container {
+  margin-bottom: 20px;
+}
+
+.toggle-btn {
+  width: 100%;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 17px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.instructions-content {
+  background: #eef4ff;
+  border-left: 4px solid #4a90e2;
+  padding: 18px;
+  margin-top: 12px;
+  border-radius: 6px;
+}
+
+.instruction-text {
+  white-space: pre-wrap;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ✨ BIG FULL-WIDTH WRITING TEXTAREA */
+.writing-answer-box {
+  width: 100%;
+  height: 450px;        /* ✅ Increased */
+  padding: 16px;
+  font-size: 18px;
+  border-radius: 10px;
+  border: 1px solid #aaa;
+  resize: vertical;
+  background: #fff;
+  line-height: 1.6;
+}
+
+.submit-writing-btn {
+  margin-top: 25px;
+  width: 100%;
+  background: #28a745;
+  color: white;
+  padding: 16px;
+  font-size: 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.submit-writing-btn:hover {
+  background: #218838;
+}
+.report-page {
+  padding: 30px;
+  background: #f7f8fc;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.report-title {
+  margin-bottom: 24px;
+  font-size: 22px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  width: 100%;
+}
+
+.report-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.donut-wrapper {
+  width: 160px;
+  height: 160px;
+  margin: auto;
+  position: relative;
+}
+
+.donut {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 🔥 THIS FIXES THE BUG */
+.donut::before {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+.donut-text {
+  position: relative;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.dot.green { background: #22c55e; }
+.dot.red { background: #ef4444; }
+
+.topic-bar {
+  display: grid;
+  grid-template-columns: 1fr 4fr 50px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.bar {
+  background: #e5e7eb;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: #22c55e;
+}
+
+/* NOT VISITED — WHITE (initial state) */
+.index-circle.index-not-visited {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+/* VISITED — GREY (seen, unanswered) */
+.index-circle.index-visited {
+  background-color: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+/* ANSWERED — GREEN */
+.index-circle.index-answered {
+  background-color: #bbf7d0;
+  border-color: #16a34a;
+  color: #065f46;
+}
+
+/* ============================================
+   FOUNDATIONAL EXAM — FINAL CLICK FIX (SCOPED)
+============================================ */
+
+/* Prevent index-row from blocking the UI */
+.foundational-exam .index-row {
+  pointer-events: none;
+}
+
+/* Re-enable clicks ONLY on circles */
+.foundational-exam .index-circle {
+  pointer-events: auto;
+}
+
+/* Ensure exam content always receives clicks */
+.foundational-exam .question-card,
+.foundational-exam .option-btn,
+.foundational-exam .nav-buttons {
+  position: relative;
+  z-index: 2;
+}
+.option-image {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin-top: 8px;
+  margin-left: 12px;
+}
+/* -------------------------------
+   COMPLETED RESULT CARD
+-------------------------------- */
+.completed-screen {
+  max-width: 640px;
+  margin: 40px auto;
+  padding: 28px 32px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-align: center;
+}
+
+/* -------------------------------
+   HEADINGS
+-------------------------------- */
+.completed-screen h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #1f2937; /* slate-800 */
+}
+
+.completed-screen p {
+  margin: 8px 0;
+  color: #374151; /* gray-700 */
+  font-size: 15px;
+}
+
+/* -------------------------------
+   STATUS
+-------------------------------- */
+.completed-screen strong {
+  color: #111827; /* gray-900 */
+}
+
+.completed-screen .status {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #e6f4ea;
+  color: #1e7f43;
+}
+
+/* -------------------------------
+   SCORE BAR
+-------------------------------- */
+.score-bar {
+  margin: 22px 0 12px;
+  text-align: left;
+}
+
+.score-bar span {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #1f2937;
+}
+
+/* Native progress element styling */
+.score-bar progress {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+
+  accent-color: transparent; /* 🔥 THIS KILLS THE BLUE */
+}
+
+/* Chrome / Edge */
+.score-bar progress::-webkit-progress-bar {
+  background-color: #e5e7eb; /* gray-200 */
+  border-radius: 999px;
+}
+
+.score-bar progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 999px;
+}
+
+/* Firefox */
+.score-bar progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 999px;
+}
+
+/* -------------------------------
+   ADVISORY TEXT
+-------------------------------- */
+.advisory-text {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #6b7280; /* gray-500 */
+  line-height: 1.5;
+}
+.writing-title {
+  margin-bottom: 10px;
+}
+
+.writing-statement {
+  margin: 10px 0;
+  padding-left: 12px;
+  border-left: 3px solid #ccc;
+  font-style: italic;
+}
+
+.opening-sentence {
+  margin: 10px 0;
+}
+
+.writing-text ul {
+  margin-top: 6px;
+}
+/* -----------------------------
+   Writing Report – Core Layout
+------------------------------ */
+
+.completed-screen {
+  max-width: 820px;
+  margin: 40px auto;
+  padding: 32px 40px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1f2937;
+}
+
+.completed-screen h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+/* -----------------------------
+   Selective Readiness Badge
+------------------------------ */
+
+.status {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: #e6f4ea;
+  color: #166534;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* -----------------------------
+   Scale Note
+------------------------------ */
+
+.scale-note {
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+/* -----------------------------
+   Score Bar
+------------------------------ */
+
+.score-bar {
+  margin: 20px 0 10px;
+}
+
+.score-bar span {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+progress {
+  width: 100%;
+  height: 14px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+  background-color: #e5e7eb;
+  border-radius: 8px;
+}
+
+progress::-webkit-progress-value {
+  background-color: #22c55e;
+  border-radius: 8px;
+}
+
+/* -----------------------------
+   Advisory Text
+------------------------------ */
+
+.advisory-text {
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+  margin: 14px 0 28px;
+}
+
+/* -----------------------------
+   AI Report Sections
+------------------------------ */
+
+.ai-report h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 26px 0 12px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 6px;
+}
+
+/* -----------------------------
+   Category Scores
+------------------------------ */
+
+.ai-report ul {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 8px;
+}
+
+.ai-report li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.ai-report li span {
+  font-weight: 600;
+}
+
+/* -----------------------------
+   Strengths / Improvements
+------------------------------ */
+
+.ai-report p {
+  background: #f9fafb;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+/* -----------------------------
+   Teacher Feedback (Emphasis)
+------------------------------ */
+
+.ai-report h2:last-of-type + p {
+  background: #eef2ff;
+  border-left: 4px solid #6366f1;
+}
+
+/* -----------------------------
+   Responsive
+------------------------------ */
+
+@media (max-width: 768px) {
+  .completed-screen {
+    padding: 24px 20px;
+  }
+
+  .completed-screen h1 {
+    font-size: 24px;
+  }
+
+  .ai-report li {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+.processing-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #ddd;
+  border-top: 4px solid #333;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.na-text {
+  font-style: italic;
+  color: #777;
+  margin-top: 4px;
+}
+.ai-report h3 {
+  font-weight: 700;
+}
+.section-label {
+  font-weight: 400; /* normal */
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+/* ============================================
+   VIEW EXAM DETAILS BUTTON (FIX)
+============================================ */
+
+.view-exam-btn {
+  display: inline-block;
+  margin: 12px 0 24px 0;
+  padding: 10px 18px;
+
+  background: #2563eb;       /* blue */
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.report-header-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+
+/* Dropdown styling */
+.exam-dropdown {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 140px;
+  transition: all 0.2s ease;
+}
+
+.exam-dropdown:hover {
+  border-color: #6366f1;
+  background: #ffffff;
+}
+
+.exam-dropdown:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+
+.view-exam-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+.index-correct {
+  background: #22c55e;
+  color: white;
+}
+
+.index-incorrect {
+  background: #ef4444;
+  color: white;
+}
+
+.index-skipped {
+  background: #e5e7eb;
+  color: #374151;
+}
+.option-btn.correct {
+  background-color: #dcfce7 !important;
+  border-color: #22c55e !important;
+}
+
+.option-btn.incorrect {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+}
+
+.option-btn.review {
+  cursor: default;
+}
+/* ============================================
+   🔥 FINAL HARD UNLOCK — DO NOT SKIP
+============================================ */
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+}
+
+
+/* 🔥 FINAL GUARANTEED FIX */
+.selective-dashboard {
+  display: block !important;
+}
+/* 🔥 SAFETY OVERRIDE — FORCE TEXT VISIBLE */
+
+/* Only white text when background is dark */
+.index-circle.index-current,
+.index-circle.index-correct,
+.index-circle.index-incorrect {
+  color: #ffffff;
+}
+
+.index-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+
+  gap: 10px;
+
+  width: 100%;
+  max-width: 100%;
+
+  overflow-x: auto;
+  overflow-y: visible;
+}
+/* ============================================
+   FINAL FORCE FIX — MATHEMATICAL REVIEW INDEX
+============================================ */
+
+.index-row .index-circle.index-wrong {
+  background-color: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.index-row .index-circle.index-answered {
+  background-color: #22c55e !important;
+  border-color: #22c55e !important;
+  color: #ffffff !important;
+}
+
+.index-row .index-circle.index-not-visited {
+  background-color: #e5e7eb !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 9999;
+}
+.confirm-modal {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-top: 25px;
+}
+
+.confirm-actions .btn {
+  flex: 1;
+  height: 58px;
+  padding: 0 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  white-space: nowrap;
+  box-sizing: border-box;
+
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.confirm-actions .cancel {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.confirm-actions .confirm {
+  background: #ef4444;
+  color: white;
+}
+/* Neutral progress bar (no blue) */
+progress {
+  width: 100%;
+  height: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+}
+
+/* Track */
+progress::-webkit-progress-bar {
+  background-color: #e5e7eb; /* light gray */
+  border-radius: 8px;
+}
+
+/* Filled part */
+progress::-webkit-progress-value {
+  background-color: #22c55e; /* green */
+  border-radius: 8px;
+}
+
+/* Firefox */
+progress::-moz-progress-bar {
+  background-color: #22c55e;
+  border-radius: 8px;
+}
+.score-progress {
+  width: 100%;
+  height: 14px;
+  background-color: #e5e7eb; /* gray-200 */
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.score-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.numeric-input,
+.text-input {
+  width: 100%;
+  max-width: 420px;
+  padding: 14px 16px;
+  font-size: 18px;
+  border: 2px solid #d0d7de;
+  border-radius: 8px;
+  margin-top: 14px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.numeric-input:focus,
+.text-input:focus {
+  border-color: #2563eb; /* blue */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+.text-input {
+  resize: none;
+}
+.exam-body {
+  flex: 1;
+  display: flex;
+
+  min-height: 0;      /* ✅ critical for flex scrolling */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+.reading-mode .passage-pane {
+  flex: 0 0 60%;
+  width: 60%;
+  max-width: 60%;
+}
+
+.reading-mode .question-pane {
+  flex: 0 0 40%;
+  width: 40%;
+  max-width: 40%;
+}
+.options-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  max-height: none;
+  overflow: visible;
+
+  padding-right: 0;
+  margin-top: 16px;
+}
+/* ===============================
+   AI EXPLANATION SECTION
+================================ */
+
+.ai-explanation-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ===============================
+   GENERATE BUTTON
+================================ */
+
+.generate-explanation-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.generate-explanation-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.generate-explanation-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* ===============================
+   AI EXPLANATION BOX
+================================ */
+
+.ai-explanation-box {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-left: 4px solid #2563eb;
+  border-radius: 6px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.ai-explanation-box h4 {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.examHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rightHeader {
+  display: flex;
+  align-items: center;
+}
+/* ==============================
+   Attempt Dropdown Styling
+============================== */
+.attempt-dropdown {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+
+  cursor: pointer;
+  outline: none;
+
+  transition: all 0.2s ease;
+
+  /* spacing from button */
+  margin-right: 10px;
+}
+
+/* Hover effect */
+.attempt-dropdown:hover {
+  border-color: #3b82f6;
+}
+
+/* Focus effect */
+.attempt-dropdown:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Remove default arrow */
+.attempt-dropdown {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%236b7280' height='20' viewBox='0 0 20 20' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M5.5 7.5L10 12l4.5-4.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+
+  padding-right: 32px;
+}
+/* =========================================================
+   EXAM HEADER
+========================================================= */
+
+.exam-header {
+  display: grid;
+
+  grid-template-columns: 1fr auto 1fr;
+
+  align-items: center;
+
+  padding: 14px 20px;
+
+  margin-bottom: 18px;
+
+  border-bottom: 1px solid #dcdcdc;
+
+  background: #f8f9fb;
+}
+
+.timer {
+  justify-self: start;
+
+  font-size: 16px;
+
+  font-weight: 700;
+
+  color: #d9534f;
+}
+
+.question-counter-inline {
+  justify-self: center;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  font-weight: 700;
+
+  font-size: 22px;
+
+  color: #1f2937;
+}
+
+.question-counter-text {
+  font-size: 20px;
+}
+
+.question-grid-toggle {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 38px;
+
+  height: 38px;
+
+  border: none;
+
+  border-radius: 6px;
+
+  background: #1e3a5f;
+
+  color: white;
+
+  font-size: 18px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.question-grid-toggle:hover {
+  background: #16304d;
+
+  transform: scale(1.05);
+}
+
+.question-grid-toggle:active {
+  transform: scale(0.96);
+}
+
+/* =========================================================
+   QUESTION NAVIGATOR
+========================================================= */
+
+.question-index-wrapper {
+  width: 100%;
+
+  background: white;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 10px;
+
+  padding: 18px;
+
+  margin-bottom: 24px;
+
+  animation: slideDown 0.2s ease;
+}
+
+.question-index-bar {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 12px;
+}
+
+.question-index-item {
+  width: 42px;
+
+  height: 42px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-weight: 700;
+
+  font-size: 15px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  position: relative;
+
+  transition: 0.2s ease;
+}
+
+.question-index-item:hover {
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   QUESTION STATES
+========================================================= */
+
+.question-index-item.answered {
+  background: #1e3a5f;
+
+  color: white;
+}
+
+.question-index-item.visited {
+  background: #f59e0b;
+
+  color: white;
+}
+
+.question-index-item.unanswered {
+  background: #e5e7eb;
+
+  color: #374151;
+}
+
+.question-index-item.current {
+  outline: 3px solid #2563eb;
+}
+
+.question-index-item.correct {
+  background: #16a34a;
+
+  color: white;
+}
+
+.question-index-item.incorrect {
+  background: #dc2626;
+
+  color: white;
+}
+
+/* =========================================================
+   SUMMARY ROW
+========================================================= */
+
+.question-summary-row {
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 24px;
+
+  padding-bottom: 16px;
+
+  margin-bottom: 18px;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summary-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.summary-count {
+  width: 34px;
+
+  height: 34px;
+
+  border-radius: 6px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background: #1e3a5f;
+
+  color: white;
+
+  font-weight: 700;
+
+  font-size: 14px;
+}
+
+.summary-label {
+  font-size: 15px;
+
+  font-weight: 600;
+
+  color: #374151;
+}
+
+/* =========================================================
+   QUESTION FLAG
+========================================================= */
+
+.question-index-content {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+.question-flag {
+  position: absolute;
+
+  top: -10px;
+
+  right: -10px;
+
+  font-size: 12px;
+}
+
+/* =========================================================
+   FLAG BUTTON
+========================================================= */
+
+.flag-btn {
+  background: #f3f4f6;
+
+  border: 1px solid #d1d5db;
+
+  padding: 10px 16px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-weight: 700;
+
+  transition: 0.2s ease;
+}
+
+.flag-btn:hover {
+  background: #e5e7eb;
+}
+
+.flag-btn.flagged {
+  background: #f97316;
+
+  color: white;
+
+  border-color: #f97316;
+}
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+@keyframes slideDown {
+
+  from {
+    opacity: 0;
+
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .exam-header {
+    grid-template-columns: 1fr;
+
+    gap: 12px;
+
+    text-align: center;
+  }
+
+  .timer {
+    justify-self: center;
+  }
+
+  .question-counter-inline {
+    justify-self: center;
+  }
+
+  .question-summary-row {
+    gap: 14px;
+  }
+
+  .question-index-bar {
+    gap: 10px;
+  }
+
+  .question-index-item {
+    width: 38px;
+
+    height: 38px;
+  }
+}
+.review-exam-dropdown {
+  width: 260px;
+  min-width: 260px;
+  flex-shrink: 0;
+}
+.mcq-options .mcq-option-card.review-correct {
+  border: 2px solid #22c55e !important;
+  background: #ecfdf5 !important;
+  color: #166534 !important;
+}
+
+.mcq-options .mcq-option-card.review-wrong {
+  border: 2px solid #ef4444 !important;
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+}
+.exam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.top-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.top-nav-buttons .nav-btn,
+.top-nav-buttons .flag-btn {
+  min-width: 96px;
+  height: 42px;
+}
+/* ============================================================
+   TYPE 2 REVIEW FIX — force green/red in review
+   Put this at the VERY END of the CSS file
+============================================================ */
+
+/* CORRECT options in review */
+.text-option-card.review-correct,
+.text-option-card.review-correct .text-option-content,
+.text-option-card.review-correct .option-text,
+.text-option-card.review-correct input:checked + .text-option-content,
+.text-option-card.review-correct input:checked ~ .text-option-content {
+  background: #dcfce7 !important;
+  border-color: #16a34a !important;
+  color: #166534 !important;
+  box-shadow: none !important;
+}
+
+/* WRONG selected options in review */
+.text-option-card.review-wrong,
+.text-option-card.review-wrong .text-option-content,
+.text-option-card.review-wrong .option-text,
+.text-option-card.review-wrong input:checked + .text-option-content,
+.text-option-card.review-wrong input:checked ~ .text-option-content {
+  background: #fee2e2 !important;
+  border-color: #dc2626 !important;
+  color: #991b1b !important;
+  box-shadow: none !important;
+}
+
+/* Ensure the card shell itself also gets review border/background */
+.text-option-card.review-correct {
+  border: 2px solid #16a34a !important;
+  background: #dcfce7 !important;
+}
+
+.text-option-card.review-wrong {
+  border: 2px solid #dc2626 !important;
+  background: #fee2e2 !important;
+}
+
+/* Make review checkbox area stop inheriting exam blue */
+.text-option-card.review-correct input,
+.text-option-card.review-wrong input {
+  accent-color: inherit;
+}
+.report-top-right {
+    position: fixed;
+    top: 25px;
+    right: 30px;
+    z-index: 1000;
+}
+
+.back-dashboard-button {
+    background: #0d8ecf;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.back-dashboard-button:hover {
+    background: #0877af;
+}
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #0d8ecf;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.back-link:hover {
+    color: #086ca6;
+    text-decoration: underline;
+}
+.back-dashboard-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 10px 18px;
+    background: #0d8ecf;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}

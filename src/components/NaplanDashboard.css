@@ -1,0 +1,190 @@
+/* ============================================================
+   FULLSCREEN EXAM MODE
+============================================================ */
+.exam-fullscreen-root {
+  position: fixed !important;
+  inset: 0 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  background: #f8fafc;
+  z-index: 9999;
+
+  display: flex;
+  flex-direction: column;
+}
+/* ===============================
+   ROOT
+=============================== */
+.naplan-dashboard {
+  min-height: 100vh;
+  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===============================
+   SUBJECT SELECTION WRAPPER
+=============================== */
+.subject-selection-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===============================
+   LOGO
+=============================== */
+.dashboard-logo {
+  display: block;
+  margin: 0 auto 20px;
+  width: 180px;
+}
+
+/* ===============================
+   SELECTION CARD
+=============================== */
+.subject-selection-card {
+  position: relative;
+
+  background: #ffffff;
+  padding: 40px 50px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+}
+
+/* ===============================
+   TITLE
+=============================== */
+.dashboard-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #1f2937;
+}
+.naplan-dashboard-title {
+  margin-top: 45px;
+}
+
+.title-divider {
+  width: 60px;
+  height: 4px;
+  background: rgb(0, 140, 200);
+  margin: 12px auto 28px;
+  border-radius: 2px;
+}
+
+/* ===============================
+   SUBJECT BUTTONS
+=============================== */
+.subject-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.subject-button {
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: none;
+  background: rgb(0, 140, 200);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease,
+    background-color 0.15s ease;
+}
+
+.subject-button:hover {
+  background: rgb(0, 120, 180);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+.subject-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* ===============================
+   CONTENT AREA (EXAM)
+=============================== */
+.content-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.exam-root {
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* ===============================
+   RESPONSIVE
+=============================== */
+@media (max-width: 640px) {
+  .subject-selection-card {
+    padding: 30px 24px;
+  }
+
+  .dashboard-title {
+    font-size: 20px;
+  }
+
+  .subject-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+/* ===============================
+   EXAM MODE OVERRIDES
+=============================== */
+
+.exam-mode {
+  padding: 0 !important;
+}
+
+.exam-mode .content-area {
+  padding: 0 !important;
+  justify-content: stretch;
+}
+
+.exam-mode .exam-root {
+  max-width: none !important;
+  width: 100%;
+}
+.logout-button {
+  position: absolute;
+  top: 20px;
+  right: 15px;
+  z-index: 10;
+
+  width: 85px;
+  padding: 8px 10px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #dc3545;
+  color: #fff;
+
+  font-weight: 600;
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #b02a37;
+}

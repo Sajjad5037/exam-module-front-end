@@ -1,0 +1,831 @@
+/* ===============================
+   OVERALL CONTAINER
+================================ */
+.overall-readiness-container {
+  padding: 24px 28px;
+  max-width: 1100px;
+  background: #ffffff;
+}
+
+/* ===============================
+   SELECTORS
+================================ */
+.selector-row {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  max-width: 360px;
+}
+
+.selector-row label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.selector-row select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+/* ===============================
+   SCORE SUMMARY
+================================ */
+.score-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0 12px;
+}
+
+.score-box {
+  background: #f8fafc;
+  padding: 18px 20px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+
+  width: 100%;
+}
+.score-box:first-child {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.score-box .label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+.score-box .value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+
+  white-space: nowrap;   /* 🔥 keeps 72.71% in one line */
+}
+/* ===============================
+   OVERRIDE WARNING
+================================ */
+.override-warning {
+  margin: 14px 0 10px;
+  padding: 12px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #9a3412;
+}
+
+/* ===============================
+   BREAKDOWN TABLE
+================================ */
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+.breakdown-table th {
+  background: #f9fafb;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+}
+
+.breakdown-table th,
+.breakdown-table td {
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+}
+
+.breakdown-table td {
+  color: #111827;
+}
+
+/* ===============================
+   SCHOOL TARGETS
+================================ */
+.school-targets {
+  margin-top: 18px;
+}
+
+.school-targets h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.school-targets ul {
+  padding-left: 18px;
+  margin: 6px 0;
+}
+
+.school-targets li {
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+/* ===============================
+   EXPLANATION FOOTER
+================================ */
+.explanation {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+/* ===============================
+   BUTTON
+================================ */
+.generate-button {
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.generate-button:hover {
+  background: #1d4ed8;
+}
+.recommendation-title {
+  margin-top: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.recommendation-box {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+}
+
+.recommendation-box ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.recommendation-box li {
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #1f2933;
+}
+
+/* Band 4 emphasis */
+.recommendation-box.warning {
+  background: #fff7ed;
+  border-left-color: #f97316;
+}
+
+.recommendation-box.warning li {
+  font-weight: 500;
+}
+
+.overall-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;            /* deep slate */
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb; /* subtle divider */
+}
+
+/* ===============================
+   CHART CONTAINERS
+================================ */
+
+.chart-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.chart-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #0f172a;
+}
+
+/* ===============================
+   RECHARTS POLISH
+================================ */
+
+.recharts-wrapper {
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.recharts-cartesian-axis-tick text {
+  font-size: 0.85rem;
+  fill: #475569;
+}
+
+.recharts-tooltip-wrapper {
+  font-size: 0.85rem;
+}
+
+.recharts-tooltip-label {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.recharts-default-tooltip {
+  background: #ffffff !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12) !important;
+  border: none !important;
+}
+
+/* ===============================
+   WRITING FOCUS CARD
+================================ */
+
+.writing-focus {
+  margin-top: 32px;
+  padding: 20px 24px;
+  border-radius: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.writing-focus h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #9a3412;
+  margin-bottom: 12px;
+}
+
+/* ===============================
+   PROGRESS BAR
+================================ */
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #fde68a;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 8px 0 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    #f59e0b,
+    #f97316
+  );
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+.writing-focus p {
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+/* ===============================
+   VISUAL RHYTHM
+================================ */
+
+.overall-summary > h4 {
+  margin-top: 40px;
+}
+
+.overall-summary table {
+  margin-top: 16px;
+}
+
+.score-row {
+  gap: 20px;
+}
+/* ===============================
+   SUBJECT FOCUS CARDS
+================================ */
+
+.subject-focus {
+  margin-top: 18px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.subject-focus.warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.subject-focus h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.subject-focus p {
+  font-size: 0.85rem;
+  color: #475569;
+  margin-top: 6px;
+}
+/* ===== MODAL OVERLAY ===== */
+.pdf-modal-overlay {
+  position: fixed;
+  inset: 0;                 /* top:0 right:0 bottom:0 left:0 */
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== MODAL CONTAINER ===== */
+.pdf-modal {
+  background: #ffffff;
+  width: 90%;
+  max-width: 1100px;
+  height: 90vh;
+
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== TOOLBAR ===== */
+.pdf-toolbar {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ===== PREVIEW BODY ===== */
+.pdf-preview-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #f9fafb;
+}
+
+/* ===============================
+   PRINT ROOT (FIXED)
+================================ */
+
+/* Keep printable content out of view, but mounted */
+.print-only {
+  visibility: hidden;
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+
+/* ===============================
+   PRINT RULES
+================================ */
+@media print {
+  /* Hide app UI + modal */
+  .pdf-modal-overlay,
+  .pdf-modal,
+  .overall-readiness-container {
+    display: none !important;
+  }
+
+  /* Show printable content */
+  .print-only {
+    visibility: visible;
+    position: static;
+    display: block !important;
+  }
+
+  /* Optional: reset body for clean PDF */
+  body {
+    margin: 0;
+    background: #ffffff;
+  }
+}
+.error-box {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.error-box h4 {
+  margin-bottom: 8px;
+}
+.schools-section {
+  margin-top: 20px;
+}
+
+.schools-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.school-pill {
+  background: #eef2ff;
+  color: #1e3a8a;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+}
+/* ===============================
+   NEW CLIENT PDF REPORT STYLES
+================================ */
+
+.pdf-report-page{
+  background:#ffffff;
+  padding:32px;
+  font-family:Arial, sans-serif;
+  color:#111827;
+}
+
+.pdf-report-header{
+  text-align:center;
+  margin-bottom:24px;
+}
+
+.pdf-brand{
+  font-size:28px;
+  font-weight:700;
+  color:#1d4ed8;
+}
+
+.pdf-main-title{
+  font-size:18px;
+  font-weight:700;
+  margin-top:8px;
+}
+
+.pdf-student-box,
+.pdf-section-card,
+.pdf-summary-box,
+.pdf-intro-box{
+  border:1px solid #dbeafe;
+  padding:14px;
+  border-radius:10px;
+  margin-bottom:14px;
+}
+
+.pdf-section-heading{
+  font-size:18px;
+  font-weight:700;
+  color:#1d4ed8;
+  margin-bottom:8px;
+}
+
+.pdf-line{
+  margin:4px 0;
+}
+
+.pdf-sub-block{
+  margin-top:8px;
+}
+
+.pdf-list{
+  padding-left:18px;
+  margin:6px 0;
+}
+
+.pdf-list li{
+  margin-bottom:4px;
+}
+
+.pdf-footer-note{
+  margin-top:18px;
+  font-size:12px;
+  line-height:1.45;
+  color:#6b7280;
+}
+/* ===========================
+   PREMIUM METRICS STRIP
+=========================== */
+
+.pdf-metric-row{
+  display:flex;
+  gap:16px;
+  margin:22px 0;
+}
+
+.pdf-metric-card{
+  flex:1;
+  border:3px solid #14b8a6;
+  border-radius:12px;
+  padding:18px;
+  text-align:center;
+  background:#ffffff;
+}
+
+.pdf-metric-label{
+  font-size:14px;
+  color:#374151;
+  margin-bottom:10px;
+  font-weight:600;
+}
+
+.pdf-metric-value{
+  font-size:38px;
+  font-weight:700;
+  color:#111827;
+  line-height:1;
+}
+
+.pdf-metric-sub{
+  margin-top:8px;
+  font-size:13px;
+  color:#6b7280;
+}
+.benchmark-row{
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.benchmark-title{
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+.benchmark-bands{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:6px;
+}
+
+.benchmark-bands span{
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:20px;
+  background:#f3f4f6;
+}
+
+.active.pink{
+  background:#fbcfe8;
+}
+
+.active.gold{
+  background:#fde68a;
+}
+.band-pill{
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:20px;
+  background:#f3f4f6;
+}
+.chart-row{
+  display:grid;
+  grid-template-columns:140px 1fr 120px;
+  gap:14px;
+  align-items:center;
+  padding:14px 0;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.chart-subject{
+  font-weight:700;
+  font-size:14px;
+}
+
+.chart-band-wrap{
+  width:100%;
+}
+
+.chart-band-grid{
+  position:relative;
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr 1fr;
+  border:1px solid #111827;
+  min-height:56px;
+}
+
+.chart-cell{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  border-right:1px solid #111827;
+  background:#ffffff;
+}
+
+.chart-cell:last-child{
+  border-right:none;
+}
+
+.active-zone{
+  background:#dbeafe;
+}
+
+.marker{
+  position:absolute;
+  top:6px;
+  transform:translateX(-50%);
+  font-size:16px;
+  z-index:5;
+}
+
+.pink-marker{
+  color:#ec4899;
+}
+
+.gold-marker{
+  color:#f59e0b;
+  top:28px;
+}
+
+.raw-score-box{
+  border:4px solid #67e8f9;
+  text-align:center;
+  padding:8px;
+}
+
+.raw-score-main{
+  font-size:34px;
+  font-weight:800;
+  line-height:1;
+}
+
+.raw-score-sub{
+  font-size:12px;
+  margin-top:6px;
+  font-weight:700;
+}
+.pdf-legend{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
+  font-weight:600;
+  margin:8px 0 14px;
+}
+
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+.pink-text{
+  color:#ec4899;
+}
+
+.gold-text{
+  color:#f59e0b;
+}
+
+.legend-divider{
+  color:#9ca3af;
+}
+.chart-row-wrap{
+  padding:10px 0;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.chart-summary{
+  font-size:12px;
+  line-height:1.4;
+  color:#374151;
+  margin-top:6px;
+  margin-left:140px;
+}
+.chart-cell{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:4px;
+}
+
+.chart-cell-text{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  line-height:1.1;
+}
+
+.chart-cell-text strong{
+  font-size:12px;
+  font-weight:700;
+}
+
+.chart-cell-text span{
+  font-size:9px;
+}
+.pdf-section-card,
+.pdf-summary-box,
+.pdf-student-box,
+.pdf-intro-box,
+.chart-row-wrap,
+.pdf-metric-card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+h3,
+.pdf-section-heading {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.pdf-footer-note {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.pdf-topic-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+  font-size:12px;
+}
+
+.pdf-topic-table th,
+.pdf-topic-table td{
+  border:1px solid #d1d5db;
+  padding:6px;
+  text-align:left;
+}
+
+.pdf-topic-table th{
+  background:#f3f4f6;
+  font-weight:700;
+}
+.topic-summary-banner{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  padding:8px 12px;
+  margin:10px 0;
+  background:#f8fafc;
+  border:1px solid #dbeafe;
+  border-radius:8px;
+  font-size:12px;
+}
+.accuracy-good{
+  font-weight:700;
+  color:#15803d;
+}
+
+.accuracy-mid{
+  font-weight:700;
+  color:#b45309;
+}
+
+.accuracy-low{
+  font-weight:700;
+  color:#dc2626;
+}
+.insight-row{
+  display:flex;
+  gap:12px;
+  margin-top:12px;
+}
+
+.strength-box,
+.improve-box{
+  flex:1;
+  padding:10px;
+  border-radius:8px;
+  font-size:12px;
+}
+
+.strength-box{
+  background:#ecfdf5;
+  border:1px solid #bbf7d0;
+}
+
+.improve-box{
+  background:#fef2f2;
+  border:1px solid #fecaca;
+}
+.topic-action-note{
+  margin-top:10px;
+  font-size:12px;
+  line-height:1.5;
+}

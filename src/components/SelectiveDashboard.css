@@ -1,0 +1,248 @@
+/* ============================================================
+   ROOT HEIGHT CHAIN (CRITICAL)
+============================================================ */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* ============================================================
+   GLOBAL DASHBOARD LAYOUT
+============================================================ */
+
+.selective-dashboard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #eef1f4;
+}
+.oc-dashboard-title {
+  position: relative;
+  left: -35px;
+  margin-top: 45px;
+}
+
+/* ============================================================
+   LOGOUT BUTTON
+   TOP-RIGHT CORNER
+============================================================ */
+
+.logout-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+
+  width: 85px;
+  padding: 8px 10px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #dc3545;
+  color: #ffffff;
+
+  font-weight: 600;
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #b02a37;
+}
+
+/* ============================================================
+   SUBJECT SELECTION (FULLSCREEN OVERLAY)
+============================================================ */
+
+.subject-selection-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  background: #eef1f4;
+  overflow: hidden;
+}
+
+.subject-selection-card {
+  position: relative;
+  background: #ffffff;
+  padding: 36px 40px 32px;
+  width: 420px;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+}
+
+/* ============================================================
+   SUBJECT SELECTION CONTENT
+============================================================ */
+
+.dashboard-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0b3c6d;
+  margin-bottom: 36px;   /* increased from 16px */
+}
+
+.title-divider {
+  height: 2px;
+  background: #d32f2f;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.subject-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+  align-items: center;
+}
+
+.subject-button {
+  width: 100%;
+  max-width: 300px;
+
+  background: #002b6b;
+  color: #ffffff;
+  border: none;
+  padding: 16px;
+
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subject-button:hover {
+  background: #001f4f;
+}
+
+.subject-button:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ============================================================
+   FOOTER (SUBJECT SELECTION)
+============================================================ */
+
+.footer-text {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footer-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0b3c6d;
+  text-decoration: underline;
+}
+
+/* ============================================================
+   EXAM LAYOUT CONTRACT (CRITICAL)
+============================================================ */
+
+/* This container owns vertical space but NOT scrolling */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  width: 100%;
+  box-sizing: border-box;
+
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* Intermediate wrapper must also allow shrinking */
+.exam-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   WIDTH SAFETY
+============================================================ */
+
+.content-area,
+.exam-root,
+.exam-shell,
+.reading-mode {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ============================================================
+   DASHBOARD LOGO
+============================================================ */
+
+.dashboard-logo {
+  width: 180px;
+  margin-bottom: 24px;
+}
+
+/* ============================================================
+   EXAM HEADER
+============================================================ */
+
+/* Header should never clip horizontally */
+.exam-header {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: visible;
+}
+
+/* ============================================================
+   BACK LINK
+============================================================ */
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  margin-bottom: 20px;
+
+  color: #0d8ecf;
+  font-size: 15px;
+  font-weight: 600;
+
+  cursor: pointer;
+  user-select: none;
+
+  transition: all 0.2s ease;
+}
+
+.back-link:hover {
+  color: #086ca6;
+  text-decoration: underline;
+}

@@ -1,0 +1,1100 @@
+/* ============================================================
+   MAIN EXAM BODY LAYOUT (READING MODE)
+============================================================ */
+.exam-body {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* LEFT: PASSAGE */
+.passage-pane {
+  flex: 2;
+  min-width: 0;           /* CRITICAL for flex scrolling */
+  overflow-y: auto;
+}
+
+/* RIGHT: QUESTION + OPTIONS */
+.question-column {
+  flex: 1;
+  min-width: 320px;
+  max-width: 420px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* ============================================================
+   ROOT WRAPPER
+============================================================ */
+.exam-shell {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  background: #f6f7f9;
+}
+
+.exam-container {
+  width: 100%;
+  max-width: 1000px;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 24px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================
+   HEADER
+============================================================ */
+.exam-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+
+  align-items: center;
+
+  padding: 14px 20px;
+
+  margin-bottom: 18px;
+
+  border-bottom: 1px solid #dcdcdc;
+
+  background: #f8f9fb;
+}
+
+.timer {
+  justify-self: start;
+
+  font-size: 16px;
+
+  font-weight: 700;
+
+  color: #d9534f;
+}
+
+.counter {
+  font-size: 14px;
+  color: #444;
+}
+
+/* ============================================================
+   READING PASSAGE
+============================================================ */
+.reading-block {
+  background: #f9fafb;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 22px;
+}
+
+.extract {
+  margin-bottom: 16px;
+}
+
+.extract:last-child {
+  margin-bottom: 0;
+}
+
+.extract h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.extract p {
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.extract img {
+  display: block;
+  max-width: 100%;
+  margin-top: 12px;
+  border-radius: 6px;
+}
+
+/* ============================================================
+   QUESTION CARD
+============================================================ */
+.question-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+}
+.question-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  padding: 20px;
+  border: 1px solid #e6e9ed;
+  border-radius: 8px;
+  background: #ffffff;
+
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.question-card p {
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+
+/* ============================================================
+   MCQ / MULTI SELECT (GRID SYSTEM)
+============================================================ */
+.mcq-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  flex: 1;
+  align-content: start;
+}
+
+/* ============================================================
+   IMAGE OPTIONS — VERTICAL STACK
+============================================================ */
+.mcq-options.image-list {
+  display: flex;            /* override grid layout */
+  flex-direction: column;
+  gap: 16px;
+
+  overflow-y: auto;         /* scroll only if content exceeds container */
+  padding-right: 6px;
+}
+/* --- default option card (radio / image MCQ) --- */
+.mcq-options:not(.multi-select):not(.word-bank) .mcq-option-card {
+  min-height: 160px;
+}
+
+/* --- option card base --- */
+.mcq-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px;
+  background: #f8fafc;
+  border: 2px solid transparent;
+  border-radius: 12px;
+
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+.mcq-option-card:hover {
+  background: #f3f6fb;
+}
+
+.mcq-option-card.selected {
+  background: #ecfdf5;
+  border-color: #22c55e;
+}
+
+/* hide native inputs */
+.mcq-option-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ============================================================
+   MULTI SELECT (CHECKBOXES)
+============================================================ */
+.mcq-options.multi-select {
+  align-items: start; /* ✅ grid-safe */
+}
+
+.mcq-options.multi-select .mcq-option-card {
+  height: auto;
+  padding: 12px 14px;
+}
+
+.mcq-options.multi-select .mcq-option-card.selected {
+  background: #f7fdf9;
+  border: 2px solid #2ecc71;
+}
+
+/* ============================================================
+   IMAGE OPTIONS
+============================================================ */
+.option-image {
+  display: block;
+  width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  margin-top: 8px;
+  background: #ffffff;
+  border-radius: 6px;
+}
+/* ============================================================
+   WORD BANK / GAP FILL
+============================================================ */
+.mcq-options.word-bank {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.mcq-options.word-bank .mcq-option-card {
+  height: auto;
+  min-height: 56px;
+  padding: 12px 16px;
+  justify-content: center;
+}
+
+.mcq-options.word-bank .mcq-option-card span {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ============================================================
+   TEXT INPUT
+============================================================ */
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 15px;
+  border-radius: 6px;
+  border: 1px solid #cfd4da;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #0d6efd;
+}
+
+/* ============================================================
+   TRUE / FALSE
+============================================================ */
+.tf-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.tf-row span {
+  font-size: 15px;
+  flex: 1;
+}
+
+.tf-row select {
+  min-width: 120px;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #cfd4da;
+}
+
+/* ============================================================
+   QUESTION INDEX BAR
+============================================================ */
+.question-index-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.question-index-item {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #111827;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.question-index-item.answered {
+  background: #22c55e;
+  color: white;
+}
+
+.question-index-item.current {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   REVIEW FEEDBACK
+============================================================ */
+.review-result {
+  margin-top: 16px;
+  padding: 10px 14px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.answer-correct {
+  background: #e6f7ee;
+  color: #198754;
+  border: 1px solid #b7ebd1;
+}
+
+.answer-wrong {
+  background: #fdecea;
+  color: #dc3545;
+  border: 1px solid #f5c2c7;
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 22px;
+}
+
+.nav-buttons button {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.nav-buttons button:disabled {
+  background: #e0e0e0;
+  cursor: not-allowed;
+}
+
+.nav-buttons button:not(:disabled) {
+  background: #0d6efd;
+  color: #ffffff;
+}
+
+/* ============================================================
+   CONFIRM FINISH MODAL
+============================================================ */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.confirm-modal {
+  background: #ffffff;
+  width: min(90vw, 360px);
+  padding: 24px;
+  border-radius: 12px;
+  text-align: center;
+  box-sizing: border-box;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+
+.confirm-modal h3 {
+  margin-bottom: 8px;
+}
+
+.confirm-modal p {
+  margin-bottom: 16px;
+  color: #555;
+}
+
+.confirm-modal button {
+  margin: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-modal button:first-of-type {
+  background: #e0e0e0;
+}
+
+.confirm-modal button:last-of-type {
+  background: #0d6efd;
+  color: #ffffff;
+}
+/* ============================================================
+   TEXT SINGLE-CHOICE (VERTICAL STACK)
+============================================================ */
+/* ============================================================
+   SCROLLABLE TEXT OPTIONS (VERTICAL)
+============================================================ */
+.mcq-options.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  max-height: 260px;      /* 👈 adjust as needed */
+  overflow-y: auto;       /* 👈 enables vertical scroll */
+  padding-right: 6px;     /* space for scrollbar */
+}
+
+/* Optional: nicer scrollbar (Chrome / Edge) */
+.mcq-options.list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mcq-options.list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.mcq-options.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* one option per row */
+/* ============================================================
+   BIG CLICKABLE OPTION ROW (RADIO / CHECKBOX)
+============================================================ */
+.mcq-option-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.mcq-option-row.selected {
+  background: #eff6ff;
+  border-color: #2563eb;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+}
+
+.mcq-option-row.selected .option-text {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.mcq-option-row.selected input[type="radio"],
+.mcq-option-row.selected input[type="checkbox"] {
+  accent-color: #2563eb;
+}
+
+
+.mcq-option-row:hover {
+  background: #f3f6fb;
+}
+
+/* input size */
+.mcq-option-row input[type="radio"],
+.mcq-option-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  accent-color: #2563eb;
+}
+
+/* text */
+.mcq-option-row .option-text {
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* selected state */
+.exam-shell:not(.review-mode) .mcq-option-row:has(input:checked) {
+  background: #ecfdf5;
+  border-color: #22c55e;
+}
+/* radio size & alignment */
+.mcq-option-row input[type="radio"] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* text wrapping */
+.option-text {
+  font-size: 16px;
+  line-height: 1.5;
+}
+/* ============================================================
+   TRUE / FALSE GRID (NAPLAN STYLE)
+============================================================ */
+.tf-grid {
+  display: grid;
+  grid-template-columns: 1fr 100px 100px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.tf-grid-header {
+  display: contents;
+  background: #eef2f7;
+  font-weight: 600;
+}
+
+.tf-grid-header span {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tf-grid-row {
+  display: contents;
+}
+
+.tf-statement {
+  padding: 12px;
+  font-size: 15px;
+  line-height: 1.4;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tf-grid-row input[type="radio"] {
+  margin: auto;
+  width: 22px;
+  height: 22px;
+  accent-color: #2563eb;
+}
+
+/* row borders */
+.tf-grid-row:last-child .tf-statement,
+.tf-grid-row:last-child input {
+  border-bottom: none;
+}
+/* ============================================================
+   INLINE GAP FILL (SINGLE GAP)
+============================================================ */
+
+.gap-fill-text.inline-gap {
+  display: inline;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.gap-dropdown.inline {
+  display: inline-block;
+  vertical-align: baseline;
+
+  margin: 0 6px;
+  padding: 4px 8px;
+
+  font-size: 15px;
+  line-height: 1.2;
+
+  border-radius: 6px;
+  border: 1px solid #cfd4da;
+  background: #ffffff;
+}
+
+.gap-dropdown.inline:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+.word-select-text {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.word-select-option {
+  background: #e5e7eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 2px;
+}
+
+.word-select-option:hover {
+  background: #dbeafe;
+}
+
+.word-select-option.selected {
+  background: #2563eb;
+  color: white;
+}
+.question-index-item.correct {
+  background-color: #22c55e !important;
+  color: white !important;
+}
+
+.question-index-item.incorrect {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+.review-details {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.review-status {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.mcq-option-row.option-correct {
+  background-color: #dcfce7 !important;
+  border-color: #22c55e !important;
+}
+.mcq-option-row.option-wrong {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+}
+/* Disable exam selection styling during review */
+.exam-shell.review-mode .mcq-option-row:has(input:checked) {
+  background: inherit;
+  border-color: inherit;
+}
+.tf-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tf-cell.tf-dim {
+  opacity: 0.35;
+}
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.explain-btn-inline {
+  background: #eef3ff;
+  color: #2f5cff;
+  border: 1px solid #c7d2fe;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.explain-btn-inline:hover {
+  background: #e0e7ff;
+}
+
+.explain-btn-inline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ai-explanation-inline {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f5f7fb;
+  border-left: 4px solid #4f46e5;
+}
+.ai-explanation-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.ai-explanation-content {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.extract-matching-pane {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.extract-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.extract-tab {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.extract-tab.active {
+  background: #1d4ed8;
+}
+
+.extract-content h2 {
+  margin-bottom: 15px;
+}
+
+.extract-text {
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.question-index-wrapper {
+  width: 100%;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  padding: 14px;
+  animation: slideDown 0.2s ease;
+}
+
+.question-index-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.question-nav-toggle {
+  border: none;
+  background: #1d4ed8;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.question-nav-toggle:hover {
+  opacity: 0.9;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.question-counter-inline {
+  justify-self: center;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  font-weight: 700;
+
+  font-size: 22px;
+
+  color: #1f2937;
+}
+
+.question-grid-toggle {
+  justify-self: end;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 38px;
+
+  height: 38px;
+
+  border: none;
+
+  border-radius: 6px;
+
+  background: #1e3a5f;
+
+  color: white;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.question-grid-toggle:hover {
+  background: #16304d;
+
+  transform: scale(1.05);
+}
+.question-grid-toggle:active {
+  transform: scale(0.96);
+}
+.question-summary-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 28px;
+
+  padding-bottom: 16px;
+
+  margin-bottom: 14px;
+
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.summary-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.summary-count {
+  width: 34px;
+
+  height: 34px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 4px;
+
+  background: #1e3a5f;
+
+  color: white;
+
+  font-weight: 700;
+
+  font-size: 15px;
+}
+
+.summary-label {
+  font-size: 15px;
+
+  font-weight: 600;
+
+  color: #374151;
+}
+.question-index-content {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+.question-flag {
+  position: absolute;
+
+  top: -10px;
+
+  right: -10px;
+
+  font-size: 11px;
+}
+.review-mode .question-pane {
+  max-height: none;
+  height: auto;
+}
+/* =========================================================
+   EXAM MODE SELECTED STATE — force BLUE for chosen options
+========================================================= */
+
+.mcq-option-row.selected {
+  background: #eff6ff !important;
+  border: 2px solid #2563eb !important;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12) !important;
+}
+
+.mcq-option-row.selected .option-text {
+  color: #1d4ed8 !important;
+  font-weight: 700;
+}
+
+.mcq-option-row.selected input[type="radio"],
+.mcq-option-row.selected input[type="checkbox"] {
+  accent-color: #2563eb !important;
+}
+.flag-btn {
+  min-width: 110px;
+  height: 52px;
+  padding: 0 20px;
+
+  border-radius: 14px;
+  border: 1.5px solid #fbbf24;
+  background: #ffffff;
+  color: #b45309;
+
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  transition: all 0.18s ease;
+}
+
+.flag-btn:hover {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+/* when question is flagged */
+.flag-btn.flagged {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.18);
+}
+
+.flag-btn.flagged:hover {
+  background: #fde68a;
+  border-color: #d97706;
+}
+.mcq-option-row.option-correct,
+.mcq-option-card.option-correct {
+  border: 2px solid #16a34a !important;
+  background: #ecfdf3 !important;
+}
+
+.mcq-option-row.option-wrong,
+.mcq-option-card.option-wrong {
+  border: 2px solid #dc2626 !important;
+  background: #fef2f2 !important;
+}
+
+.mcq-option-row.option-correct .option-text,
+.mcq-option-card.option-correct .option-text {
+  color: #166534;
+  font-weight: 700;
+}
+
+.mcq-option-row.option-wrong .option-text,
+.mcq-option-card.option-wrong .option-text {
+  color: #b91c1c;
+  font-weight: 700;
+}
+.extract-tabs-wrapper {
+  margin-bottom: 16px;
+}
+
+.extract-tabs-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.extract-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.extract-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+  max-width: 100%;
+}
+
+.extract-tab:hover {
+  transform: translateY(-1px);
+  border-color: #94a3b8;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.extract-tab.inactive {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.extract-tab.active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.22);
+}
+
+.extract-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  flex-shrink: 0;
+}
+
+.extract-tab.active .extract-tab-badge {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.extract-tab-title {
+  display: block;
+  line-height: 1.35;
+}
+
+.extract-content {
+  border: 1px solid #dbe4f0;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 18px 20px 22px;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+}
+
+.extract-active-indicator {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.extract-heading {
+  margin: 0 0 14px;
+  font-size: 22px;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.extract-text {
+  white-space: pre-wrap;
+  line-height: 1.75;
+  color: #1e293b;
+}

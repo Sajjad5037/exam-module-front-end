@@ -1,0 +1,110 @@
+/* =========================
+   PDF OVERLAY & MODAL
+========================= */
+
+.pdf-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+}
+
+.pdf-modal {
+  background: #ffffff;
+  width: 900px;
+  max-height: 90vh;
+  margin: 40px auto;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =========================
+   PDF HEADER
+========================= */
+
+.pdf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+
+/* =========================
+   PDF ACTION BUTTONS
+========================= */
+
+.pdf-header button {
+  appearance: none;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Primary action: Print / Save */
+.pdf-header button:first-child {
+  background-color: #2563eb;
+  color: #ffffff;
+  margin-right: 8px;
+}
+
+.pdf-header button:first-child:hover {
+  background-color: #1d4ed8;
+}
+
+/* Secondary action: Close */
+.pdf-header button:last-child {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.pdf-header button:last-child:hover {
+  background-color: #e5e7eb;
+}
+
+/* Focus ring for accessibility */
+.pdf-header button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+}
+
+
+/* =========================
+   PDF CONTENT
+========================= */
+
+.pdf-content {
+  padding: 24px;
+  overflow: auto;
+}
+
+
+/* =========================
+   PRINT MODE
+========================= */
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .pdf-content,
+  .pdf-content * {
+    visibility: visible;
+  }
+
+  .pdf-content {
+    position: absolute;
+    inset: 0;
+    padding: 24px;
+  }
+}

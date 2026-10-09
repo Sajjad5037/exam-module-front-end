@@ -1,0 +1,48 @@
+import React, { useState } from "react";
+import "./ExamSelector.css";
+import ExamTypeSelector from "./ExamTypeSelector";
+import ExamTypeSelector_naplan from "./ExamTypeSelector_naplan";
+
+const ExamSelector = ({ examType, onSelect }) => {
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  console.log("selectedCategory:", selectedCategory);
+  console.log("examType:", examType);
+
+  return (
+    <div className="exam-selector-container">
+      {!selectedCategory && (
+        <>
+          <button
+            className="dashboard-button"
+            onClick={() => setSelectedCategory("selective")}
+          >
+            Selective / OC 
+          </button>
+
+          <button
+            className="dashboard-button"
+            onClick={() => setSelectedCategory("naplan")}
+          >
+            NAPLAN
+          </button>
+        </>
+      )}
+
+      {selectedCategory === "selective" && (
+        <ExamTypeSelector
+          examType={examType}
+          onSelect={onSelect}
+        />
+      )}
+
+      {selectedCategory === "naplan" && (
+        <ExamTypeSelector_naplan
+          examType={examType}
+          onSelect={onSelect}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ExamSelector;

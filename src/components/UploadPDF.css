@@ -1,0 +1,149 @@
+/* ================================
+   Container (Card Style)
+================================ */
+.upload-pdf-container {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 30px 25px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ================================
+   Heading
+================================ */
+.upload-pdf-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333333;
+  font-weight: 700;
+}
+
+/* ================================
+   File Input
+================================ */
+.upload-pdf-container input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 18px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* ================================
+   Button
+================================ */
+.upload-pdf-container button {
+  width: 100%;
+  padding: 12px;
+  background-color: #007bff;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.upload-pdf-container button:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.upload-pdf-container button:disabled {
+  background-color: #a0c4ff;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ================================
+   Selected File + Notes
+================================ */
+.upload-pdf-container p {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.upload-pdf-container .note {
+  margin-top: 15px;
+  font-size: 0.9em;
+  color: #555;
+}
+
+/* ================================
+   Error
+================================ */
+.upload-error {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ================================
+   Upload Result
+================================ */
+.upload-result {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+/* ================================
+   Report Table
+================================ */
+.upload-report {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.upload-report th,
+.upload-report td {
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.upload-report th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.upload-report tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+/* ================================
+   Please Wait Overlay (SAFE)
+================================ */
+.upload-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.upload-overlay-box {
+  background: #ffffff;
+  padding: 28px 36px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}

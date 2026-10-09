@@ -1,0 +1,191 @@
+import React, { useEffect, useState } from "react";
+import {
+  useParams,
+  useSearchParams,
+  useNavigate
+} from "react-router-dom";
+
+
+
+const API_BASE =   process.env.REACT_APP_API_URL
+//const API_BASE = "http://localhost:8000";
+
+export default function WritingReview() {
+  const { attemptId } = useParams();
+  const [searchParams] = useSearchParams();
+  const variant = searchParams.get("variant") || "actual";
+  const navigate = useNavigate();
+
+  const [history, setHistory] = useState([]);
+  const [selectedAttempt, setSelectedAttempt] = useState(null);
+  const [essay, setEssay] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // --------------------------------------------------
+  // Load history USING attempt_id (NEW ENDPOINT)
+  // --------------------------------------------------
+  useEffect(() => {
+    if (!attemptId) return;
+
+    const historyEndpoint =
+      variant === "homework"
+        ? `/api/student/homework-writing-history-by-attempt?attempt_id=${attemptId}`
+        : `/api/exams/writing/history-by-attempt?attempt_id=${attemptId}`;
+
+    fetch(`${API_BASE}${historyEndpoint}`)
+      .then(res => res.json())
+      .then(data => {
+        setHistory(data);
+
+        if (data.length > 0) {
+          const initialId = Number(attemptId) || data[0].attempt_id;
+          setSelectedAttempt(initialId);
+        }
+      })
+      .catch(() => {});
+  }, [attemptId, variant]);
+
+  // --------------------------------------------------
+  // Load essay when attempt changes
+  // --------------------------------------------------
+  useEffect(() => {
+  if (!selectedAttempt) return;
+
+  console.log("🧪 Fetching essay for:", selectedAttempt);  // ADD
+
+  setLoading(true);
+
+  const reviewEndpoint =
+    variant === "homework"
+      ? `/api/student/homework-writing-review-by-attempt?attempt_id=${selectedAttempt}`
+      : `/api/exams/writing/review-by-attempt?attempt_id=${selectedAttempt}`;
+
+  fetch(`${API_BASE}${reviewEndpoint}`)
+    .then(res => res.json())
+    .then(data => {
+
+  console.log(
+    "Writing review response:",
+    data
+  );
+
+  console.log(
+    "Essay HTML:",
+    data.answer_text
+  );
+
+  setEssay(
+    data.answer_text || ""
+  );
+
+  setLoading(false);
+
+})
+    .catch(() => setLoading(false));
+}, [selectedAttempt, variant]);
+
+  // --------------------------------------------------
+  // Loading state
+  // --------------------------------------------------
+  if (loading) return <div>Loading essay...</div>;
+
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
+  // --------------------------------------------------
+// UI
+// --------------------------------------------------
+
+console.log(
+  "CURRENT ESSAY STATE:",
+  essay
+);
+
+return (
+  <div
+    style={{
+      padding: "32px",
+      maxWidth: "800px",
+      margin: "auto"
+    }}
+  >
+
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "20px"
+      }}
+    >
+      <h1 style={{ margin: 0 }}>
+        Your Writing
+      </h1>
+
+      <button
+        onClick={() =>
+          navigate("/SelectiveDashboard", {
+            state: { tab: "historical" }
+          })
+        }
+        style={{
+          background: "#2E7D32",
+          color: "white",
+          border: "none",
+          padding: "10px 14px",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontWeight: 600
+        }}
+      >
+        Exit Review
+      </button>
+    </div>
+
+    <select
+      value={selectedAttempt || ""}
+      onChange={(e) => {
+        const id = Number(e.target.value);
+        setSelectedAttempt(id);
+      }}
+      style={{
+        padding: "8px",
+        marginBottom: "16px",
+        borderRadius: "6px"
+      }}
+    >
+      {history.map(item => (
+        <option
+          key={item.attempt_id}
+          value={item.attempt_id}
+        >
+          {new Date(item.date).toLocaleString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true
+            }
+          )} — Score: {item.score}
+        </option>
+      ))}
+    </select>
+
+    <div
+      style={{
+        background: "white",
+        padding: "20px",
+        borderRadius: "8px",
+        lineHeight: "1.7"
+      }}
+      dangerouslySetInnerHTML={{
+        __html: essay
+      }}
+    />
+
+  </div>
+);
+}

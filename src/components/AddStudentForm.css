@@ -1,0 +1,187 @@
+/* =======================
+   Container
+======================= */
+.add-student-container {
+  max-width: 450px;
+  margin: 50px auto;
+  padding: 30px 25px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
+}
+
+/* =======================
+   Headings
+======================= */
+.add-student-container h2 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #333;
+  font-weight: 700;
+  font-size: 1.8rem;
+}
+
+/* =======================
+   Form Labels
+======================= */
+.add-student-container label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+}
+
+/* =======================
+   Inputs & Selects
+======================= */
+.add-student-container input,
+.add-student-container select {
+  width: 100%;
+  padding: 12px 10px;
+  margin-bottom: 18px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.add-student-container input:focus,
+.add-student-container select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.3);
+  outline: none;
+}
+
+.add-student-container input[readonly] {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  color: #777;
+}
+
+/* =======================
+   Buttons
+======================= */
+.add-student-container button {
+  width: 100%;
+  padding: 14px;
+  background-color: #007bff;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.add-student-container button:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.add-student-container button:active {
+  transform: translateY(0);
+}
+
+/* =======================
+   Table Styling
+======================= */
+.add-student-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.add-student-container th,
+.add-student-container td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+}
+
+.add-student-container th {
+  background-color: #f0f0f0;
+  font-weight: 600;
+}
+
+.add-student-container tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* =======================
+   Responsive
+======================= */
+@media (max-width: 500px) {
+  .add-student-container {
+    padding: 20px;
+    margin: 20px;
+  }
+
+  .add-student-container h2 {
+    font-size: 1.5rem;
+  }
+}
+
+.table-wrapper {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.students-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.students-table th,
+.students-table td {
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.students-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+.students-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* =======================
+   Wide container (View mode)
+======================= */
+.add-student-container.full-width {
+  max-width: 100%;
+  margin: 20px 0;
+  padding: 24px;
+}
+.submit-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.submit-btn.disabled,
+.submit-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.8;
+}

@@ -1,0 +1,248 @@
+.homework-topic-report {
+  width: 100%;
+  padding: 0 14px 20px;
+  box-sizing: border-box;
+}
+
+.homework-topic-report-filters {
+  display: grid;
+  grid-template-columns: 145px 130px 145px;
+  column-gap: 14px;
+  row-gap: 28px;
+  align-items: start;
+  padding: 0 10px 28px;
+  border-bottom: 1px solid #e1e1e1;
+  max-width: 476px;
+  box-sizing: border-box;
+}
+
+.homework-topic-report-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.homework-topic-report-field label {
+  font-size: 9px;
+  line-height: 1.2;
+  color: #333;
+}
+
+.homework-topic-report-field select {
+  width: 100%;
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid #ccd3dc;
+  border-radius: 5px;
+  background: #fff;
+  color: #333;
+  font-size: 10px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.homework-topic-report-field select:focus {
+  border-color: #9aa6b5;
+}
+
+.homework-topic-report-student-search input {
+  width: 100%;
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid #ccd3dc;
+  border-radius: 5px;
+  background: #fff;
+  color: #333;
+  font-size: 10px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.homework-topic-report-student-results {
+  max-height: 180px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccd3dc;
+}
+
+.homework-topic-report-student-result {
+  padding: 8px;
+  border-bottom: 1px solid #e1e5ea;
+  color: #333;
+  font-size: 10px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+.homework-topic-report-student-result:last-child {
+  border-bottom: 0;
+}
+
+.homework-topic-report-student-result:hover {
+  background: #f3f4f6;
+}
+
+.homework-topic-report-student-no-results {
+  padding: 8px;
+  color: #6b7280;
+  font-size: 10px;
+}
+
+.homework-topic-report-cumulative-student {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.homework-topic-report-attempt-selector {
+  display: flex;
+  gap: 6px;
+}
+
+.homework-topic-report-attempt-selector select {
+  width: 100%;
+  min-width: 0;
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid #ccd3dc;
+  border-radius: 5px;
+  background: #fff;
+  color: #333;
+  font-size: 10px;
+  box-sizing: border-box;
+}
+
+.homework-topic-report-attempt-selector button {
+  height: 27px;
+  padding: 0 10px;
+  border: 1px solid #2563eb;
+  border-radius: 5px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.homework-topic-report-attempt-selector button:not(:disabled):hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.homework-topic-report-attempt-selector button:disabled {
+  border-color: #d1d5db;
+  background: #d9d9d9;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.homework-topic-report-selected-attempts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.homework-topic-report-selected-attempts-heading {
+  color: #4b5563;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.homework-topic-report-selected-attempts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.homework-topic-report-attempt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 23px;
+  padding: 0 4px 0 8px;
+  border: 1px solid #d5dbe3;
+  border-radius: 5px;
+  background: #f7f8fa;
+  color: #374151;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.homework-topic-report-attempt-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #7b8491;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.homework-topic-report-attempt-chip-remove:hover {
+  background: #e5e9ee;
+  color: #374151;
+}
+
+.homework-topic-report-attempt-chip-remove:focus-visible {
+  outline: 1px solid #9aa6b5;
+  outline-offset: 1px;
+}
+
+.homework-topic-report-cumulative-topics {
+  grid-column: 2;
+}
+
+.homework-topic-report-row-break {
+  grid-column: 1;
+}
+
+.homework-topic-report-actions {
+  grid-column: 1;
+  margin-top: 3px;
+}
+
+.homework-topic-report-actions button {
+  width: 106px;
+  height: 29px;
+  border: none;
+  border-radius: 6px;
+  background: #d9d9d9;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: not-allowed;
+}
+
+.homework-topic-report-actions button:not(:disabled) {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.homework-topic-report-actions button:not(:disabled):hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.homework-topic-report-actions button:disabled {
+  background: #d9d9d9;
+  color: #6b7280;
+}
+
+@media (max-width: 700px) {
+  .homework-topic-report-filters {
+    grid-template-columns: 145px 130px;
+  }
+
+  .homework-topic-report-row-break {
+    grid-column: 1;
+  }
+}

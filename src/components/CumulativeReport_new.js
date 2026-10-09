@@ -1,0 +1,436 @@
+import React, { useState, useEffect } from "react";
+import "./CumulativeReport_new.css";
+
+export default function CumulativeReport_new({
+  studentId,
+  exam,
+  attemptDates,
+  topics = [],
+  API_BASE
+}) {
+
+  const [reports, setReports] = useState([]);
+  
+
+  useEffect(() => {
+    setReports([]);
+  }, [studentId, exam, attemptDates]);
+
+
+  /* ================= RESET WHEN INPUTS CHANGE ================= */
+
+
+ 
+
+
+  /* ================= GENERATE OVERALL REPORT ================= */
+
+  const handleGenerate = () => {
+
+    if (!studentId || !exam || !attemptDates.length) {
+      alert("Please select student, exam and attempt dates.");
+      return;
+    }
+
+    // Only overall report initially
+    setReports([{ topic: null }]);
+  };
+
+
+
+  /* ================= ADD TOPIC REPORT ================= */
+
+  
+
+
+
+  /* ================= REPORT CARD ================= */
+
+  const ReportCard = ({ topic, isOverall }) => {
+
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+
+      if (!studentId || !exam || !attemptDates.length) return;
+
+      const fetchData = async () => {
+
+        setLoading(true);
+
+        const params = new URLSearchParams();
+
+        params.append("student_id", studentId);
+        if (exam !== "writing") {
+          params.append("exam", exam);
+        }
+
+        attemptDates.forEach(date => {
+          const iso = new Date(date).toISOString().split("T")[0];
+          params.append("attempt_dates", iso);
+        });
+        console.log("DATES SENT TO BACKEND:", attemptDates);
+
+        let endpoint;
+
+        if (exam === "writing") {
+          endpoint = "/api/reports/student/writing/cumulative";
+        } else {
+          endpoint = "/api/reports/student/cumulative-overall";
+        }
+
+
+
+
+
+        try {
+          console.log(
+            "FETCHING:",
+            `${API_BASE}${endpoint}?${params.toString()}`
+          );
+          const res = await fetch(
+            `${API_BASE}${endpoint}?${params.toString()}`
+          );
+
+          const result = await res.json();
+          console.log("CUMULATIVE REPORT RESULT:", result);
+
+          setData(result);
+
+          // Only after overall report loads do we show topic dropdown
+          
+
+        } catch (err) {
+          console.error(err);
+        }
+
+        setLoading(false);
+
+      };
+
+      fetchData();
+
+    }, [studentId, exam, attemptDates, API_BASE]);
+
+
+    if (loading) {
+      return <div className="cumulative-report">Loading...</div>;
+    }
+
+    if (!data) return null;
+
+
+    const {
+      student_id,
+      student_name,
+      exam: examName
+    } = data;
+    
+    const attempts =
+  Array.isArray(data?.attempts)
+    ? data.attempts
+    : [];
+
+    const label = topic ? topic : "Overall Performance";
+
+    if (!attempts.length) {
+      return (
+        <div className="cumulative-report">
+          <p>No data available.</p>
+        </div>
+      );
+    }
+
+
+    return (
+      <div className="cumulative-report">
+
+        <div className="report-header">
+          <h2>{label}</h2>
+
+          <p className="subtext">
+            {student_name} ({student_id}) · {examName}
+          </p>
+        </div>
+
+        <div className="chart-container">
+          <SimpleLineChart attempts={attempts} exam={exam} />
+        
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            marginTop: "10px",
+            fontSize: "13px"
+          }}>
+            <div style={{display:"flex", alignItems:"center", gap:"6px"}}>
+              <span style={{
+                width:"10px",
+                height:"10px",
+                background:"#2563eb",
+                display:"inline-block"
+              }}></span>
+              {exam === "writing"
+                ? "Writing Score"
+                : exam === "mathematical_reasoning"
+                ? "Mathematical Reasoning Score"
+                : exam === "reading"
+                ? "Reading Score"
+                : "Thinking Skills Score"}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    );
+  };
+
+
+
+  /* ================= UI ================= */
+  console.log("REPORTS STATE:", reports, Array.isArray(reports));
+  return (
+
+    <div className="cumulative-dashboard">
+
+      {/* Generate button */}
+
+      <button
+        className="generate-btn"
+        onClick={handleGenerate}
+      >
+        Generate Report
+      </button>
+
+
+
+      {/* Topic selector appears AFTER overall report loads */}
+
+  
+
+
+      {/* Reports */}
+
+      <div className="reports-container">
+
+      {/* Overall report */}
+      {reports
+        .filter(r => r.topic === null)
+        .map(r => (
+          <ReportCard
+            key="overall-report"
+            topic={null}
+          />
+      ))}
+    
+      {/* Topic reports */}
+      {reports
+        .filter(r => r.topic !== null)
+        .map(r => (
+          <ReportCard
+            key={`topic-${r.topic}`}
+            topic={r.topic}
+          />
+      ))}
+    
+    </div>
+
+    </div>
+  );
+}
+
+
+
+/* ================= SIMPLE SVG CHART ================= */
+
+function SimpleLineChart({ attempts = [], exam }) {
+  console.log("CHART ATTEMPTS:", attempts);
+  console.log("CHART ATTEMPTS ARRAY?", Array.isArray(attempts));
+  
+  const safeAttempts =
+  Array.isArray(attempts)
+    ? attempts
+    : [];
+
+  console.log("ATTEMPT OBJECTS:", JSON.stringify(safeAttempts, null, 2));
+  console.log("REPORT CARD ATTEMPTS:", attempts);
+  console.log("ATTEMPTS TYPE:", typeof attempts, Array.isArray(attempts));
+
+  const width = 800;
+  const height = 220;
+  const padding = 50;
+  const maxY = exam === "writing" ? 25 : 100;
+  const gridValues =
+  exam === "writing"
+    ? [15, 17, 20, 22, 25]
+    : [20, 40, 60, 80, 100];
+
+  const scores = safeAttempts.map((a) => {
+  if (typeof a === "object") return Number(a.score ?? 0);
+  return Number(a ?? 0);
+});
+
+
+  const xStep =
+    safeAttempts.length > 1
+      ? (width - padding * 2) / safeAttempts.length
+      : 0;
+  
+  const yScale = val =>
+    height - padding - (val / maxY) * (height - padding * 2);
+
+  const points = (values) => {
+
+  if (!Array.isArray(values)) {
+    console.warn("POINTS received non-array:", values);
+    return "";
+  }
+
+  return values
+    .map((v, i) => {
+      const x = padding + (i + 1) * xStep;
+      const y = yScale(Number(v) || 0);
+      return `${x},${y}`;
+    })
+    .join(" ");
+};
+
+  return (
+    <svg width={width} height={height} className="line-chart">
+
+      {/* Y axis */}
+      <line
+        x1={padding}
+        y1={padding}
+        x2={padding}
+        y2={height - padding}
+        stroke="#ccc"
+      />
+
+      {/* X axis */}
+      <line
+        x1={padding}
+        y1={height - padding}
+        x2={width - padding}
+        y2={height - padding}
+        stroke="#ccc"
+      />
+
+      {/* Y axis label */}
+      <text
+        x={25}
+        y={height / 2}
+        transform={`rotate(-90 25 ${height / 2})`}
+        textAnchor="middle"
+        fontSize="12"
+        fill="#444"
+      >
+        {
+            exam === "writing"
+              ? "Writing Score (0–25)"
+              : exam === "mathematical_reasoning"
+              ? "Mathematical Reasoning Score (%)"
+              : exam === "reading"
+              ? "Reading Score (%)"
+              : "Thinking Skills Score (%)"
+          }
+      </text>
+      {/* Horizontal grid lines */}
+      {gridValues.map(val => (
+        <line
+          key={`grid-${val}`}
+          x1={padding}
+          y1={yScale(val)}
+          x2={width - padding}
+          y2={yScale(val)}
+          stroke="#e5e7eb"
+          strokeDasharray="3,3"
+        />
+      ))}
+      {/* Y axis tick labels */}
+      {gridValues.map(val => (
+        <text
+          key={val}
+          x={padding - 12}
+          y={yScale(val)}
+          textAnchor="end"
+          fontSize="11"
+          fill="#555"
+        >
+          {val}
+        </text>
+      ))}
+      {/* X axis label */}
+      <text
+        x={width / 2}
+        y={height - 15}
+        textAnchor="middle"
+        fontSize="12"
+        fill="#444"
+      >
+        Attempts Over Time
+      </text>
+
+      {/* Lines */}
+
+      {Array.isArray(scores) && scores.length > 0 && (
+        <>
+          <polyline
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={points(scores)}
+          />
+          
+        </>
+      )}
+      {/* Score points */}
+
+      {Array.isArray(scores) && scores.map((s, i) => {
+        const x = padding + (i + 1) * xStep;
+        const y = yScale(s);
+      
+        return (
+          <circle
+            key={`score-${i}`}
+            cx={x}
+            cy={y}
+            r="5"
+            fill="#2563eb"
+            stroke="white"
+            strokeWidth="2"
+          />
+        );
+      })}
+      
+      {/* Accuracy points */}
+      
+      
+      {/* X axis date labels */}
+      {safeAttempts.map((a, i) => {
+        const x = padding + (i + 1) * xStep;
+      
+        const label = new Date(a.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric"
+        });
+      
+        return (
+          <text
+            key={`date-${i}`}
+            x={x}
+            y={height - padding + 18}
+            textAnchor="middle"
+            fontSize="11"
+            fill="#555"
+          >
+            {label}
+          </text>
+        );
+      })}
+
+    </svg>
+  );
+}

@@ -1,0 +1,1425 @@
+  import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback
+  } from "react";
+  import "./ExamPageMathematicalReasoning.css";
+
+
+  import OC_MathematicalReasoningReview from "./OC_MathematicalReasoningReview";
+        
+  import "./ExamOptionStates_mr.css";
+
+  /* ============================================================
+  MAIN COMPONENT
+  ============================================================ */
+  export default function ExamPageOCMathematicalReasoning({
+  mode: parentMode,
+  onExamStart,
+  onExamFinish,
+  onBackToDashboard
+}) {
+  const studentId = sessionStorage.getItem("student_id");
+  const isPopNavigationRef = useRef(false);
+
+  const hasSubmittedRef = useRef(false);
+  const prevIndexRef = useRef(null);
+  const [explanation, setExplanation] = useState(null);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  /**
+   * mode:
+   * - loading → deciding what to show
+   * - exam    → active attempt
+   * - report  → completed attempt
+   */
+  const [mode, setMode] = useState("loading");
+  const isReview = mode === "review";
+  const handleReviewLoaded = useCallback((questions) => {
+  console.log("✅ Review questions received:", questions.length);
+
+  const normalized = questions.map(q => {
+    const rawBlocks = Array.isArray(q.question_blocks)
+      ? q.question_blocks
+      : Array.isArray(q.blocks)
+      ? q.blocks
+      : [];
+
+    return {
+      ...q,
+      blocks: rawBlocks.map(block => {
+        if (
+          block?.type === "image" &&
+          block?.src &&
+          !block.src.startsWith("http")
+        ) {
+          return {
+            ...block,
+            src: `https://storage.googleapis.com/exammoduleimages/${block.src}`
+          };
+        }
+        return block;
+      })
+    };
+  });
+
+  setReviewQuestions(normalized);
+  setCurrentIndex(0);
+}, []);
+  const normalizeOptionContent = (content) => {
+    if (!content) return { type: "text", content };
+
+    // match "A) filename.png"
+    const match = content.match(/\)\s*(.*\.png)$/i);
+
+    if (!match) {
+      return { type: "text", content };
+    }
+
+    const filename = match[1].trim();
+
+    return {
+      type: "image",
+      src: `https://storage.googleapis.com/exammoduleimages/${filename}`
+    };
+  };
+
+
+  // ---------------- EXAM STATE ----------------
+  const [questions, setQuestions] = useState([]);
+  const [showConfirmFinish, setShowConfirmFinish] = useState(false);
+  const [showQuestionNavigator, setShowQuestionNavigator] =
+    useState(false);
+
+  const [flaggedQuestions, setFlaggedQuestions] =
+    useState({});
+
+  const [reviewQuestions, setReviewQuestions] = useState([]);
+  const activeQuestions =
+    mode === "review" ? reviewQuestions : questions;
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [visited, setVisited] = useState({});
+  const [timeLeft, setTimeLeft] = useState(null);
+  const API_BASE =
+  process.env.REACT_APP_API_URL || "http://localhost:3000";
+
+
+  if (!API_BASE) {
+    throw new Error("❌ REACT_APP_API_URL is not defined");
+  }
+
+
+  // ---------------- REPORT ----------------
+  const [report, setReport] = useState(null);
+  const [attempts, setAttempts] = useState([]);
+  const [selectedAttemptId, setSelectedAttemptId] = useState(null);
+
+  /* ============================================================
+    LOAD REPORT (ONLY WHEN EXAM IS COMPLETED)
+  ============================================================ */
+  const loadAttempts = async () => {
+  try {
+    const endpoint =
+      parentMode?.includes("homework")
+        ? "/api/student/homework-attempts/oc-mathematical-reasoning"
+        : "/api/student/exam-attempts/oc-mathematical-reasoning";
+
+    const res = await fetch(
+      `${API_BASE}${endpoint}?student_id=${studentId}`
+    );
+
+    if (!res.ok) {
+      console.warn(`⚠️ Failed to load ${parentMode} attempts`);
+      return;
+    }
+
+    const data = await res.json();
+
+    console.log(`📅 ${parentMode} attempts loaded:`, data);
+
+    const attemptsList = data.attempts || [];
+    setAttempts(attemptsList);
+
+    // ✅ set default selected attempt
+    if (!selectedAttemptId && attemptsList.length > 0) {
+      setSelectedAttemptId(attemptsList[0].attempt_id);
+    }
+
+  } catch (err) {
+    console.error(`❌ loadAttempts (${parentMode}) error:`, err);
+  }
+};
+
+  const loadReport = useCallback(async (attemptId = null) => {
+  try {
+    const endpoint =
+      parentMode?.includes("homework")
+        ? "/api/student/homework-report/oc-mathematical-reasoning"
+        : "/api/student/exam-report/oc-mathematical-reasoning";
+
+    let url = `${API_BASE}${endpoint}?student_id=${studentId}`;
+
+    if (attemptId) {
+      url += `&attempt_id=${attemptId}`;
+    }
+
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      console.warn(`⚠️ ${parentMode} report not available yet`);
+      setReport(null);
+      setMode("report");
+      return;
+    }
+
+    const data = await res.json();
+
+    console.log(`📊 ${parentMode} report loaded:`, data);
+
+    setReport(data);
+
+  } catch (err) {
+    console.error(`❌ loadReport (${parentMode}) error:`, err);
+  }
+}, [studentId, parentMode]);
+useEffect(() => {
+  if (isReview) {
+    setShowQuestionNavigator(false);
+  }
+}, [isReview]);
+  useEffect(() => {
+  if (!studentId) return;
+
+  if (parentMode?.startsWith("report")) {
+    setMode("report");   // 🔥 THIS WAS MISSING
+    loadReport();
+  }
+
+}, [studentId, parentMode]);
+  useEffect(() => {
+  if (mode === "report" || mode === "review") {
+    loadAttempts();
+  }
+}, [mode]);
+  useEffect(() => {
+  console.log("📅 attempts:", attempts);
+}, [attempts]);
+
+  useEffect(() => {
+  console.log("📊 reviewQuestions length:", reviewQuestions.length);
+}, [reviewQuestions]);
+  useEffect(() => {
+  if (!selectedAttemptId) return;
+
+  if (mode === "report") {
+    loadReport(selectedAttemptId);
+  }
+
+  // ❌ DO NOT load report in review mode
+}, [selectedAttemptId, mode]);
+  useEffect(() => {
+    if (mode !== "exam" || questions.length === 0) return;
+
+    window.history.replaceState(
+      { questionIndex: 0 },
+      "",
+      window.location.href
+    );
+
+    window.history.pushState(
+      { questionIndex: 0 },
+      "",
+      window.location.href
+    );
+  }, [mode, questions.length]);
+  useEffect(() => {
+    if (mode !== "exam" || questions.length === 0) return;
+    if (isPopNavigationRef.current) {
+      isPopNavigationRef.current = false;
+      return;
+    }
+
+    window.history.pushState(
+      { questionIndex: currentIndex },
+      "",
+      window.location.href
+    );
+  }, [currentIndex, mode, questions.length]);
+  useEffect(() => {
+    if (mode !== "exam" || questions.length === 0) return;
+
+    const handlePopState = (e) => {
+      const state = e.state;
+
+      // 🔥 CASE 1: On Q1 → block exit
+      if (currentIndex === 0) {
+        if (!showConfirmFinish) {
+          setShowConfirmFinish(true);
+        }
+
+        window.history.replaceState(
+          { questionIndex: 0 },
+          "",
+          window.location.href
+        );
+
+        return;
+      }
+
+      // 🔥 CASE 2: Normal navigation
+      if (!state || typeof state.questionIndex !== "number") {
+        return;
+      }
+
+      isPopNavigationRef.current = true;
+      setCurrentIndex(state.questionIndex);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [mode, currentIndex, showConfirmFinish]);
+
+  useEffect(() => {
+    setExplanation(null);
+  }, [currentIndex]);
+  useEffect(() => {
+    console.log("🔄 MODE CHANGED:", mode);
+  }, [mode]);
+  useEffect(() => {
+  if (mode !== "exam") return;
+
+  const handleBeforeUnload = (e) => {
+    e.preventDefault();
+    e.returnValue = ""; // 🔥 triggers browser confirmation
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [mode]);
+  /* ============================================================
+    START / RESUME EXAM (SINGLE SOURCE OF TRUTH)
+  ============================================================ */
+  useEffect(() => {
+  if (!studentId) return;
+
+  // 🔥 ONLY run exam if explicitly told
+    // 🔥 HARD BLOCK FIRST
+  if (parentMode?.startsWith("report")) return;
+  
+  // ✅ Allow BOTH exam + homework
+  if (parentMode !== "exam" && parentMode !== "homework") return;
+  
+  // 🔥 ONLY initial run
+  if (mode !== "loading") return;
+
+  const startExam = async () => {
+    try {
+      const endpoint =
+        parentMode === "homework"
+          ? "/api/student/start-homework-oc-mathematical-reasoning"
+          : "/api/student/start-exam-oc-mathematical-reasoning";
+
+      const body = {
+        student_id: studentId
+      };
+
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      console.log(`📥 start-${parentMode}:`, data);
+
+      if (data.completed === true) {
+        setMode("report");
+        onExamFinish?.();
+        return;
+      }
+
+      const normalizedQuestions = (data.questions || []).map(q => {
+        const rawBlocks = Array.isArray(q.question_blocks)
+          ? q.question_blocks
+          : Array.isArray(q.blocks)
+          ? q.blocks
+          : [];
+
+        return {
+          ...q,
+          blocks: rawBlocks.map(block => {
+            if (
+              block?.type === "image" &&
+              block?.src &&
+              !block.src.startsWith("http")
+            ) {
+              return {
+                ...block,
+                src: `https://storage.googleapis.com/exammoduleimages/${block.src}`
+              };
+            }
+            return block;
+          })
+        };
+      });
+
+      setQuestions(normalizedQuestions);
+      setTimeLeft(data.remaining_time);
+      setMode("exam");
+      onExamStart?.();
+
+    } catch (err) {
+      console.error("❌ start-exam error:", err);
+    }
+  };
+
+  startExam();
+
+}, [studentId, parentMode, mode]);
+  
+  /* ============================================================
+    MARK VISITED QUESTIONS
+  ============================================================ */
+  useEffect(() => {
+    if (prevIndexRef.current !== null) {
+      const prevIdx = prevIndexRef.current;
+      const prevQ = activeQuestions[prevIdx];
+
+      if (prevQ && !answers[prevQ.q_id]) {
+        setVisited(prev => ({ ...prev, [prevQ.q_id]: true }));
+      }
+    }
+
+    prevIndexRef.current = currentIndex;
+  }, [currentIndex, activeQuestions, answers]);
+  
+ useEffect(() => {
+  if (questions.length > 0) {
+    console.log("========== QUESTION DEBUG ==========");
+    console.log("ALL QUESTIONS:", questions);
+    console.log("FIRST QUESTION:", questions[0]);
+    console.log("FIRST QUESTION BLOCKS:", questions[0]?.blocks);
+    console.log("====================================");
+  }
+}, [questions]);
+
+
+  /* ============================================================
+    FINISH EXAM (SUBMIT ONLY — NO UI DECISIONS)
+  ============================================================ */
+  const finishExam = useCallback(
+    async (reason = "submitted") => {
+      if (hasSubmittedRef.current) return;
+      hasSubmittedRef.current = true;
+
+      const payload = {
+        student_id: studentId,
+        answers
+      };
+
+      console.log("📤 finish-exam payload:", payload);
+
+      try {
+        const endpoint =
+          parentMode === "homework"
+            ? "/api/student/finish-homework-oc-mathematical-reasoning"
+            : "/api/student/finish-exam-oc-mathematical-reasoning";
+
+        
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        console.log("🎯 finish response:", data);
+
+        // ✅ Set attempt → triggers report load automatically
+        setSelectedAttemptId(data.attempt_id);
+
+        // ✅ Switch UI
+        setMode("report");
+
+        onExamFinish?.();
+
+      } catch (err) {
+        console.error("❌ finish-exam error:", err);
+      }
+    },
+    [studentId, answers]
+  );
+
+  /* ============================================================
+    TIMER (AUTO SUBMIT)
+  ============================================================ */
+  useEffect(() => {
+    if (timeLeft === null) return;
+
+    // ⏱️ TIME UP ALWAYS WINS — NO UI STATE CAN BLOCK THIS
+    if (timeLeft <= 0) {
+      if (!hasSubmittedRef.current) {
+        setShowConfirmFinish(false);
+        finishExam("time_expired");
+      }
+      return;
+    }
+
+    // ⏸️ pause ticking while confirm modal is open
+    if (showConfirmFinish) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft(t => t - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timeLeft, showConfirmFinish, finishExam]);
+
+  /* ============================================================
+    ANSWER HANDLING
+  ============================================================ */
+  const handleGenerateExplanation = async () => {
+    if (!currentQ) return;
+
+    setLoadingExplanation(true);
+    setExplanation(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/ai/explain-question-TS`, // reuse same endpoint
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            question: currentQ.blocks,
+            options: currentQ.options,
+            correct_answer: currentQ.correct_answer
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      setExplanation(data.explanation);
+
+    } catch (err) {
+      console.error("Explanation error", err);
+      setExplanation("Failed to generate explanation.");
+    }
+
+    setLoadingExplanation(false);
+  };
+  const toggleFlagQuestion = () => {
+
+  const qid =
+    activeQuestions[currentIndex]?.q_id;
+
+  if (!qid) return;
+
+  setFlaggedQuestions(prev => ({
+
+    ...prev,
+
+    [qid]: !prev[qid]
+
+  }));
+};
+  const handleAnswer = (optionKey) => {
+    if (mode === "review") return;
+    const qid = activeQuestions[currentIndex]?.q_id;
+    if (!qid) return;
+
+    setAnswers(prev => ({
+      ...prev,
+      [qid]: optionKey.toUpperCase().trim()
+    }));
+  };
+
+  const goToQuestion = (idx) => {
+  if (idx < 0 || idx >= activeQuestions.length) return;
+
+  const qid = activeQuestions[idx]?.q_id;
+  if (qid && !isReview) {
+    setVisited(prev => ({ ...prev, [qid]: true }));
+  }
+
+  setCurrentIndex(idx);
+};
+
+
+  const formatTime = (seconds) => {
+    const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const s = String(seconds % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  /* ============================================================
+    RENDER
+  ============================================================ */
+
+  if (mode === "loading") {
+    return <p className="loading">Loading…</p>;
+  }
+
+  if (mode === "report") {
+  return (
+    <MathematicalReasoningReport
+  report={report}
+  attempts={attempts}
+  selectedAttemptId={selectedAttemptId}
+  onChangeAttempt={(id) => setSelectedAttemptId(id)}
+  onViewExamDetails={() => setMode("review")}
+  onBackToDashboard={onBackToDashboard}
+/>
+
+  );
+  }
+  
+  // ---------------- EXAM UI ----------------
+  
+
+  
+
+const reviewLoader = isReview && (
+  <OC_MathematicalReasoningReview
+    studentId={studentId}
+    attemptId={selectedAttemptId}
+    onLoaded={handleReviewLoaded}
+    mode={parentMode} 
+  />
+);
+
+const currentQ = activeQuestions[currentIndex];
+console.log("🔍 CURRENT QUESTION:", currentQ);
+console.log("🔍 CURRENT QUESTION BLOCKS:", currentQ?.blocks);
+if (!currentQ) {
+  return (
+    <div className="exam-shell">
+      {reviewLoader}
+      <p style={{ padding: "20px" }}>Loading questions...</p>
+    </div>
+  );
+}
+
+  
+  const optionEntries = Object.entries(currentQ.options || {});
+
+  
+  
+  return (
+  <div className="exam-shell">
+     {reviewLoader}
+    <div className="exam-container">
+
+      <div className="exam-header">
+
+  {mode === "exam" && (
+    <div className="timer">
+      ⏳ {formatTime(timeLeft)}
+    </div>
+  )}
+
+  <div className="question-header-center">
+    <div className="question-counter-inline">
+
+      <span className="question-counter-text">
+        Question {currentIndex + 1} of {activeQuestions.length}
+      </span>
+
+      <button
+        className="question-grid-toggle"
+        onClick={() => setShowQuestionNavigator(prev => !prev)}
+      >
+        ▦
+      </button>
+
+      {isReview && (
+        <>
+          <button
+            className="nav-btn finish"
+            onClick={() => {
+              setMode("report");
+              setExplanation(null);
+            }}
+          >
+            Exit Review
+          </button>
+
+          <select
+            className="review-exam-dropdown"
+            value={selectedAttemptId || ""}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              setSelectedAttemptId(id);
+            }}
+          >
+            {attempts.map((a) => (
+              <option
+                key={a.attempt_id}
+                value={a.attempt_id}
+              >
+                {new Date(a.completed_at).toLocaleString()}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+    </div>
+  </div>
+
+  <div className="exam-header-actions">
+  <div className="header-nav-buttons">
+    <button
+      className="nav-btn prev"
+      onClick={() => goToQuestion(currentIndex - 1)}
+      disabled={currentIndex === 0}
+    >
+      Previous
+    </button>
+
+    {!isReview && (
+      <button
+        className={`flag-btn ${
+          flaggedQuestions[activeQuestions[currentIndex]?.q_id]
+            ? "flagged"
+            : ""
+        }`}
+        onClick={toggleFlagQuestion}
+      >
+        🚩{" "}
+        {flaggedQuestions[activeQuestions[currentIndex]?.q_id]
+          ? "Unflag"
+          : "Flag"}
+      </button>
+    )}
+
+    {isReview ? (
+      <button
+        className="nav-btn next"
+        onClick={() => goToQuestion(currentIndex + 1)}
+        disabled={currentIndex === activeQuestions.length - 1}
+      >
+        Next
+      </button>
+    ) : currentIndex < activeQuestions.length - 1 ? (
+      <button
+        className="nav-btn next"
+        onClick={() => goToQuestion(currentIndex + 1)}
+      >
+        Next
+      </button>
+    ) : (
+      <button
+        className="nav-btn finish"
+        onClick={() => setShowConfirmFinish(true)}
+      >
+        Finish Exam
+      </button>
+    )}
+  </div>
+</div>
+  
+</div>      
+      {/* QUESTION INDEX */}
+      {showQuestionNavigator && (
+
+          <div className="question-index-wrapper">
+          {!isReview && (
+            <div className="question-summary-row">
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    activeQuestions.filter(q =>
+                      answers[q.q_id]
+                    ).length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Answered
+                </span>
+
+              </div>
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    activeQuestions.length -
+
+                    activeQuestions.filter(q =>
+                      answers[q.q_id]
+                    ).length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Not answered
+                </span>
+
+              </div>
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    activeQuestions.filter(q =>
+                      !visited[q.q_id]
+                    ).length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Not read
+                </span>
+
+              </div>
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    Object.values(
+                      flaggedQuestions
+                    )
+                      .filter(Boolean)
+                      .length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Flagged
+                </span>
+
+              </div>
+
+            </div>
+          )}
+
+            <div className="question-index-bar">
+
+              {
+                activeQuestions.map((q, i) => {
+
+                  let cls =
+                    "question-index-item";
+
+                  if (isReview) {
+
+                    const student =
+                      q.student_answer
+                        ?.trim()
+                        .toUpperCase();
+
+                    const correct =
+                      q.correct_answer
+                        ?.trim()
+                        .toUpperCase();
+
+                    if (!student) {
+
+                      cls += " unanswered";
+
+                    } else if (
+                      student === correct
+                    ) {
+
+                      cls += " correct";
+
+                    } else {
+
+                      cls += " incorrect";
+                    }
+
+                  } else {
+
+                    if (
+                      answers[q.q_id]
+                    ) {
+
+                      cls += " answered";
+
+                    } else if (
+                      visited[q.q_id]
+                    ) {
+
+                      cls += " visited";
+
+                    } else {
+
+                      cls += " unanswered";
+                    }
+                  }
+
+                  if (
+                    i === currentIndex
+                  ) {
+
+                    cls += " current";
+                  }
+
+                  return (
+
+                    <button
+                      key={q.q_id}
+
+                      className={cls}
+
+                      onClick={() => {
+
+                        goToQuestion(i);
+
+                        setShowQuestionNavigator(
+                          false
+                        );
+                      }}
+                    >
+
+                      <div className="question-index-content">
+
+                        <span>
+                          {i + 1}
+                        </span>
+
+                        {
+                          flaggedQuestions[
+                            q.q_id
+                          ] && (
+                            <span className="question-flag">
+                              🚩
+                            </span>
+                          )
+                        }
+
+                      </div>
+
+                    </button>
+                  );
+                })
+              }
+
+            </div>
+
+          </div>
+
+        )
+      }
+
+      {/* QUESTION CARD */}
+  <div className="question-card">
+
+  {/* ✅ RENDER QUESTION BLOCKS */}
+  {Array.isArray(currentQ.blocks) &&
+    currentQ.blocks.map((block, idx) => {
+      if (block.type === "text") {
+        return (
+          <p key={idx} className="question-text">
+            {block.content}
+          </p>
+        );
+      }
+
+      if (block.type === "image") {
+        return (
+          <img
+            key={idx}
+            src={block.src}
+            alt={`Question visual ${idx + 1}`}
+            className="question-image"
+          />
+        );
+      }
+
+      return null;
+    })}
+
+  {/* OPTIONS */}
+  {optionEntries.map(([key, opt], i) => {
+    const optionKey = key.toUpperCase();
+    const student = currentQ.student_answer?.trim().toUpperCase();
+    const correct = currentQ.correct_answer?.trim().toUpperCase();
+    
+    let statusClass = "";
+    
+    if (isReview) {
+      if (optionKey === correct) {
+        statusClass = "option-correct";     // green
+      } else if (optionKey === student) {
+        statusClass = "option-wrong";       // red
+      }
+    } else {
+      if (answers[currentQ.q_id] === optionKey) {
+        statusClass = "selected";
+      }
+    }
+
+    return (
+      <button
+        key={i}
+        disabled={isReview}
+        className={`option-btn ${statusClass}`}
+        onClick={() => !isReview && handleAnswer(optionKey)}
+      >
+        {opt?.type === "image" ? (
+        <img
+          src={opt.src}
+          alt={`Option ${optionKey}`}
+          className="option-image"
+        />
+      ) : (
+        <div className="option-row">
+          <span className="option-label">{optionKey}.</span>
+          <span>{opt?.content}</span>
+        </div>
+      )}
+      </button>
+    );
+  })}
+  {/* AI EXPLANATION SECTION */}
+  {isReview && (
+    <div style={{ marginTop: "20px" }}>
+
+      <button
+        onClick={handleGenerateExplanation}
+        disabled={loadingExplanation}
+        style={{
+          padding: "10px 16px",
+          background: "#2563eb",
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer"
+        }}
+      >
+        {loadingExplanation ? "Generating..." : "✨ Generate AI Explanation"}
+      </button>
+
+      {explanation && (
+        <div
+          style={{
+            marginTop: "15px",
+            padding: "15px",
+            background: "#f9fafb",
+            borderRadius: "8px",
+            border: "1px solid #e5e7eb",
+            lineHeight: "1.6"
+          }}
+        >
+          <h4 style={{ marginBottom: "10px" }}>AI Explanation</h4>
+
+          <p
+            dangerouslySetInnerHTML={{
+              __html: explanation
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\n/g, "<br/>")
+            }}
+          />
+        </div>
+      )}
+
+    </div>
+  )}
+
+  </div>
+
+
+      
+    </div> 
+    {showConfirmFinish && (
+    <div className="confirm-overlay">
+      <div className="confirm-modal">
+        <h3>Finish Exam?</h3>
+        <p>
+          Are you sure you want to submit your exam?
+          <br />
+          You won’t be able to change your answers after this.
+        </p>
+
+        <div className="confirm-actions">
+          <button
+            className="btn cancel"
+            onClick={() => setShowConfirmFinish(false)}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="btn confirm"
+            onClick={() => {
+              setShowConfirmFinish(false);
+              finishExam("manual_submit");
+            }}
+          >
+            Yes, Submit Exam
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+    
+  </div>
+  )
+  }
+
+
+  /* ============================================================
+  REPORT COMPONENT
+  ============================================================ */
+
+  function MathematicalReasoningReport({
+  report,
+  attempts,
+  selectedAttemptId,
+  onChangeAttempt,
+  onViewExamDetails,
+  onBackToDashboard
+}) {
+    if (!report?.overall) {
+  return (
+    <div
+      className="empty-state"
+      style={{
+        position: "fixed",
+        inset: 0,
+        overflowY: "auto",
+        background: "#f3f4f6",
+        padding: "32px",
+        boxSizing: "border-box",
+        zIndex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+      }}
+    >
+      <button
+        className="back-dashboard-button"
+        onClick={onBackToDashboard}
+        style={{
+          padding: "10px 18px",
+          background: "#0d8ecf",
+          color: "#fff",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer",
+          fontWeight: "600",
+          marginBottom: "10px",
+        }}
+      >
+        ← Back
+      </button>
+
+      <h3>No reports available yet</h3>
+
+      <p>
+        You haven’t attempted any exams yet.
+        <br />
+        Complete an exam to see your performance here.
+      </p>
+    </div>
+  );
+}
+
+    const {
+      overall,
+      topic_wise_performance,
+      topic_accuracy,
+      improvement_areas
+    } = report;
+
+    const greyPercent =
+      (overall.correct / overall.total_questions) * 100;
+
+    const percentage = Math.round(greyPercent);
+
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          overflowY: "auto",
+          background: "#f3f4f6",
+          padding: "32px",
+          boxSizing: "border-box",
+          zIndex: 1
+        }}
+      >
+        <div
+  style={{
+    display: "flex",
+    justifyContent: "flex-end",
+    marginBottom: "20px"
+  }}
+>
+  <button
+    onClick={onBackToDashboard}
+    style={{
+      padding: "10px 18px",
+      background: "#0d8ecf",
+      color: "#fff",
+      border: "none",
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontWeight: "600"
+    }}
+  >
+    ← Back to Dashboard
+  </button>
+</div>
+
+        {/* HEADER */}
+        <h2
+          style={{
+            fontSize: "26px",
+            fontWeight: "600",
+            marginBottom: "16px"
+          }}
+        >
+          You scored {overall.correct} out of {overall.total_questions} in 
+          OC Mathematical Reasoning Test
+        </h2>
+        <div style={{ marginBottom: "16px" }}>
+          <select
+            value={selectedAttemptId || ""}
+            onChange={(e) => onChangeAttempt(Number(e.target.value))}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid #ccc"
+            }}
+          >
+            {attempts.map((a) => (
+              <option key={a.attempt_id} value={a.attempt_id}>
+                {new Date(a.completed_at).toLocaleString()}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={() => {
+            console.log("🟢 Review Exam button clicked");
+            onViewExamDetails();
+          }}
+          style={{
+            padding: "10px 18px",
+            background: "#2563eb",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            marginBottom: "28px"
+          }}
+        >
+          View Exam Details
+        </button>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "24px",
+            width: "100%",
+            maxWidth: "1200px"
+          }}
+        >
+
+          {/* OVERALL ACCURACY */}
+          <div
+            style={{
+              background: "white",
+              padding: "24px",
+              borderRadius: "10px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+            }}
+          >
+            <h3>Overall Score</h3>
+
+            <div style={{ display: "flex", justifyContent: "center", margin: "24px 0" }}>
+              <svg width="160" height="160" viewBox="0 0 160 160">
+
+                <circle
+                  cx="80"
+                  cy="80"
+                  r="70"
+                  stroke="#e5e7eb"
+                  strokeWidth="14"
+                  fill="none"
+                />
+
+                <circle
+                  cx="80"
+                  cy="80"
+                  r="70"
+                  stroke="#22c55e"
+                  strokeWidth="14"
+                  fill="none"
+                  strokeDasharray={`${percentage * 4.4} 999`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 80 80)"
+                />
+
+                <text
+                  x="80"
+                  y="88"
+                  textAnchor="middle"
+                  fontSize="24"
+                  fontWeight="600"
+                  fill="#111827"
+                >
+                  {percentage}%
+                </text>
+
+              </svg>
+            </div>
+
+            <div style={{ lineHeight: "1.8" }}>
+              <p>Total Questions: {overall.total_questions}</p>
+              <p>Attempted: {overall.attempted}</p>
+              <p>Correct: {overall.correct}</p>
+              <p>Incorrect: {overall.incorrect}</p>
+              <p>Not Attempted: {overall.not_attempted}</p>
+              <p>Accuracy: {overall.score_percent}%</p>
+            </div>
+          </div>
+
+          {/* TOPIC PERFORMANCE */}
+          <div
+            style={{
+              background: "white",
+              padding: "24px",
+              borderRadius: "10px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+            }}
+          >
+            <h3>Topic-wise Performance</h3>
+
+            {topic_wise_performance.map(t => (
+              <div
+                key={t.topic}
+                style={{ marginBottom: "18px" }}
+              >
+                <div style={{ marginBottom: "6px", fontWeight: "500" }}>
+                  {t.topic}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    height: "10px",
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                    background: "#e5e7eb"
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${(t.correct / t.total) * 100}%`,
+                      background: "#22c55e"
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      width: `${(t.incorrect / t.total) * 100}%`,
+                      background: "#ef4444"
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      width: `${(t.not_attempted / t.total) * 100}%`,
+                      background: "#9ca3af"
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    marginTop: "6px",
+                    fontSize: "14px"
+                  }}
+                >
+                  <span>Attempted: {t.attempted}</span>
+                  <span style={{ color: "#22c55e" }}>Correct: {t.correct}</span>
+                  <span style={{ color: "#ef4444" }}>Incorrect: {t.incorrect}</span>
+                  <span style={{ color: "#6b7280" }}>
+                    Not Attempted: {t.not_attempted}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* IMPROVEMENT AREAS */}
+          <div
+            style={{
+              background: "white",
+              padding: "24px",
+              borderRadius: "10px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+            }}
+          >
+            <h3>Improvement Areas</h3>
+
+            {improvement_areas.map(t => (
+              <div
+                key={t.topic}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "14px"
+                }}
+              >
+                <span style={{ width: "120px" }}>{t.topic}</span>
+
+                <div
+                  style={{
+                    flex: 1,
+                    height: "10px",
+                    background: "#e5e7eb",
+                    borderRadius: "6px",
+                    overflow: "hidden"
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${t.accuracy_percent}%`,
+                      background: "#2563eb",
+                      height: "100%"
+                    }}
+                  />
+                </div>
+
+                <span>{t.accuracy_percent}%</span>
+
+                {t.limited_data && (
+                  <small style={{ color: "#ef4444" }}>
+                    Limited data
+                  </small>
+                )}
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </div>
+    );
+  }

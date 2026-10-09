@@ -1,0 +1,1716 @@
+  import React, { useEffect, useMemo, useState, useRef } from "react";
+  import "./ExamPage_reading.css";
+  import ReadingReview from "./ReadingReview";
+
+
+
+  export default function ReadingComponent({
+  studentId,
+  mode: parentMode,
+  variant,
+  onExamStart,
+  onExamFinish,
+  onBackToDashboard
+}) {
+    console.log("🧪 studentId:", studentId);
+    
+    const API_BASE = process.env.REACT_APP_API_URL;
+    const [activeExtract, setActiveExtract] = useState(0);
+    //const API_BASE = "http://127.0.0.1:8000";
+    const startReadingHomework = async () => {
+    try {
+      const studentIdFromStorage = sessionStorage.getItem("student_id");
+
+      const res = await fetch(
+        `${API_BASE}/api/student/start-homework-reading`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_id: studentIdFromStorage })
+        }
+      );
+
+      const meta = await res.json();
+
+      console.log("📘 START HOMEWORK READING:", meta);
+
+      // 🔴 Already completed
+      if (meta.completed === true) {
+        setAttemptId(meta.attempt_id);
+        setFinished(true);
+
+        if (meta.attempt_id) {
+          await loadReportBySession(meta.attempt_id);
+        }
+
+        setMode("report");
+        onExamFinish?.();
+        return;
+      }
+
+      // 🟢 Continue homework
+      setAttemptId(meta.attempt_id);
+      setTimeLeft(meta.remaining_time);
+
+      const examRes = await fetch(
+        `${API_BASE}/api/student/homework-reading-content/${meta.exam_id}`
+      );
+
+      const examData = await examRes.json();
+
+      const sections = examData.exam_json?.sections || [];
+
+      const flatQuestions = sections.flatMap((section) => {
+        const qs = section.questions || [];
+
+        return qs.map((q) => ({
+          ...q,
+          topic: TOPIC_LABELS[section.question_type] || "Other",
+          passage_style: section.passage_style || "informational",
+          answer_options: q.answer_options || section.answer_options || {},
+          section_ref: section
+        }));
+      });
+
+      setExam(examData.exam_json);
+      setIndex(0);
+      setQuestions(flatQuestions);
+
+      setMode("exam");
+      onExamStart?.();
+
+    } catch (err) {
+      console.error("❌ startReadingHomework error:", err);
+    }
+  };
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+    const [showQuestionNavigator, setShowQuestionNavigator] =
+      useState(false);
+
+    const [flaggedQuestions, setFlaggedQuestions] =
+      useState({});
+    console.log("🔗 API_BASE:", API_BASE);
+    if (!API_BASE) {
+    console.error("❌ REACT_APP_API_URL is not defined");
+    }
+
+    /* =============================
+      STATE
+    ============================= */
+    const [exam, setExam] = useState(null);
+    const [examDates, setExamDates] = useState([]);
+    const [selectedExamId, setSelectedExamId] = useState(null);
+    const [mode, setMode] = useState("loading"); // replace "exam"
+    const [questions, setQuestions] = useState([]);
+    const [index, setIndex] = useState(0);
+    const isPopNavigationRef = useRef(false);
+    const [answers, setAnswers] = useState({});
+    const [visited, setVisited] = useState({});
+    const [finished, setFinished] = useState(false);
+    const [explanations, setExplanations] = useState({});
+    const [loadingExplanation, setLoadingExplanation] = useState(null);
+
+    const [attemptId, setAttemptId] = useState(null);
+    
+    const [reviewQuestions, setReviewQuestions] = useState([]);
+    const loadReviewByExamId = async (examId) => {
+    try {
+      if (!examId) return;
+
+      console.log("📡 Loading REVIEW for examId:", examId);
+
+      const studentIdFromStorage = sessionStorage.getItem("student_id");
+
+      if (!studentIdFromStorage) {
+        console.error("❌ No student_id in sessionStorage");
+        return;
+      }
+
+      const endpoint =
+        variant === "homework"
+          ? "/api/student/homework-review/reading"
+          : "/api/student/exam-review/reading";
+
+      const res = await fetch(
+        `${API_BASE}${endpoint}?student_id=${studentIdFromStorage}&exam_id=${examId}`
+      );
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("❌ loadReviewByExamId failed:", errText);
+        throw new Error("Failed to load review");
+      }
+
+      const data = await res.json();
+
+      console.log("🧪 REVIEW DATA (examId):", data);
+
+      // ✅ Normalize questions (same logic you already use)
+      const normalizedQuestions = (data.questions || []).map((q) => ({
+        ...q,
+        answer_options:
+          (q.answer_options && Object.keys(q.answer_options).length > 0)
+            ? q.answer_options
+            : q.section_ref?.answer_options ||
+              q.section?.answer_options ||
+              {}
+      }));
+
+      setReviewQuestions(normalizedQuestions);
+
+      // 🔥 Ensure we are in review mode
+      setMode("review");
+
+    } catch (err) {
+      console.error("❌ loadReviewByExamId error:", err);
+      alert("Unable to load exam review.");
+    }
+  };
+    const loadExamDatesReading_v1 = async () => {
+  try {
+    const studentIdFromStorage = sessionStorage.getItem("student_id");
+
+    const endpoint =
+      variant === "homework"
+        ? "/api/student/homework-dates/reading"
+        : "/api/student/exam-dates/reading";
+
+    const res = await fetch(
+      `${API_BASE}${endpoint}?student_id=${studentIdFromStorage}`
+    );
+
+    const data = await res.json();
+
+    // 🔥 ADD LOG HERE
+    console.log("📅 Reading exam dates:", data);
+
+    setExamDates(data);
+
+    return data;
+
+  } catch (err) {
+    console.error("❌ loadExamDates error:", err);
+    return [];
+  }
+};
+  useEffect(() => {
+    if (!studentId) return;
+    if (mode !== "loading") return;
+
+    // 🔴 REPORT
+    if (parentMode === "report") {
+      setMode("report");
+      setFinished(true);
+      return;
+    }
+
+    // 🟢 HOMEWORK (NEW)
+    if (parentMode === "exam") {
+      if (variant === "homework") {
+        startReadingHomework();
+      }
+      // else → normal exam handled below
+      return;
+    }
+
+    // 🟢 EXAM → handled separately
+  }, [studentId, parentMode, mode, variant]);
+  
+    useEffect(() => {
+    if (!finished) return;
+    const init = async () => {
+      const data = await loadExamDatesReading_v1();
+
+      if (data.length > 0) {
+        const latest = data[0];
+
+        setSelectedExamId(latest.exam_id);
+        setAttemptId(latest.session_id);   // 🔥 ADD THIS
+
+        await loadReportReading_v1(latest.exam_id);
+      }
+    };
+
+    init();
+  }, [finished, variant]);
+      
+    const formatExplanation = (text) => {
+        if (!text) return "";
+      
+        return text
+          .replace(/\*\*(.*?)\*\*/g, "<strong style='display:block; margin-top:10px;'>$1</strong>")
+          .replace(/\n\n/g, "<br/><br/>")
+          .replace(/\n/g, "<br/>");
+      };  
+    const handleGenerateExplanation = async (question) => {
+        const qid = String(question.question_id);
+      
+        if (explanations[qid]) return;
+      
+        setLoadingExplanation(qid);
+      
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/ai/explain-question-selective-reading`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                question_text: question.question_text,
+                options: question.answer_options || {},
+                correct_answer: question.correct_answer,
+                passage: question.section_ref?.reading_material
+              })
+            }
+          );
+      
+          if (!res.ok) {
+            throw new Error("API failed");
+          }
+      
+          const data = await res.json();
+      
+          setExplanations(prev => ({
+            ...prev,
+            [qid]: data.explanation || "⚠️ Failed to generate explanation."
+          }));
+      
+        } catch (err) {
+          console.error("Explanation failed", err);
+      
+          setExplanations(prev => ({
+            ...prev,
+            [qid]: "⚠️ Failed to generate explanation."
+          }));
+        } finally {
+          setLoadingExplanation(null);
+        }
+      };
+    const handleReviewExam = async (sessionIdOverride = null) => {
+  // 🔥 Ignore accidental event object
+  if (sessionIdOverride && typeof sessionIdOverride === "object") {
+    sessionIdOverride = null;
+  }
+
+  const sessionId = Number(sessionIdOverride ?? attemptId);
+
+  console.log("🚨 attemptId:", attemptId);
+  console.log("🚨 override:", sessionIdOverride);
+  console.log("🚨 final sessionId:", sessionId);
+
+  if (!sessionId || isNaN(sessionId)) {
+    console.error("❌ Invalid session_id:", sessionId);
+    alert("Exam session not found.");
+    return;
+  }
+
+  try {
+    const endpoint =
+      variant === "homework"
+        ? "/api/student/homework-review-by-session/reading"
+        : "/api/exams/review-reading";
+
+    const res = await fetch(
+      `${API_BASE}${endpoint}?session_id=${sessionId}`
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to load review");
+    }
+
+    const data = await res.json();
+
+    console.log("🧪 REVIEW PAYLOAD:", data);
+
+    setReviewQuestions(
+      (data.questions || []).map((q) => ({
+        ...q,
+        answer_options:
+          (q.answer_options && Object.keys(q.answer_options).length > 0)
+            ? q.answer_options
+            : q.section_ref?.answer_options ||
+              q.section?.answer_options ||
+              {}
+      }))
+    );
+
+    setAttemptId(sessionId); // keep state in sync
+    setMode("review");
+
+  } catch (err) {
+    console.error("❌ Review exam error:", err);
+    alert("Unable to load exam review.");
+  }
+};
+
+    const loadReportReading_v1 = async (examId) => {
+    try {
+      if (!examId) return;
+
+      console.log("📡 Loading report for examId:", examId);
+
+      const studentIdFromStorage = sessionStorage.getItem("student_id");
+
+      const endpoint =
+        variant === "homework"
+          ? "/api/student/homework-report/reading"
+          : "/api/student/exam-report/reading";
+
+      const res = await fetch(
+        `${API_BASE}${endpoint}?student_id=${studentIdFromStorage}&exam_id=${examId}`
+      );
+
+      const data = await res.json();
+
+      console.log("📊 Report data:", data);
+
+      setReport(data);
+
+      // 👇 ADD THIS LINE
+      if (data.session_id) {
+        setAttemptId(data.session_id);
+      }
+
+      setFinished(true);
+      await loadExamDatesReading_v1();  // 🔥 refresh dates
+
+    } catch (err) {
+      console.error("❌ loadReport error:", err);
+    }
+  };
+      
+    const loadReportBySession = async (sessionId) => {
+    try {
+      setLoadingReport(true);
+
+      const endpoint =
+        variant === "homework"
+          ? "/api/student/homework-report-by-session"
+          : "/api/exams/reading-report";
+
+      const res = await fetch(
+        `${API_BASE}${endpoint}?session_id=${sessionId}`
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to load report");
+      }
+
+      const data = await res.json();
+      setReport(data);
+      await loadExamDatesReading_v1();
+
+    } catch (err) {
+      console.error("❌ loadReportBySession error:", err);
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+    
+
+    const [timeLeft, setTimeLeft] = useState(null);
+
+    const [report, setReport] = useState(null);
+    const normalizedReport = useMemo(() => {
+      if (!report || !report.overall) return null;
+
+      return {
+        total: report.overall.total_questions,
+        attempted: report.overall.attempted,
+        correct: report.overall.correct,
+        incorrect: report.overall.incorrect,
+        not_attempted: report.overall.not_attempted,
+        accuracy: report.overall.accuracy,
+        coverage: report.overall.coverage,
+        score: report.overall.score,
+        result: report.overall.result,
+        topics: report.topics || []
+      };
+    }, [report]);
+
+    const [loadingReport, setLoadingReport] = useState(false);
+
+    /* =============================
+      HELPERS
+    ============================= */
+      const TOPIC_LABELS = {
+        main_idea: "Main Idea and Summary",
+        main_idea_and_summary: "Main Idea and Summary",
+        literary: "Main Idea and Summary",   // ✅ ADD THIS
+        comparative_analysis: "Comparative Analysis",
+        dropdown_cloze: "Dropdown Cloze",
+        extract_matching: "Extract Matching",
+        gapped_text: "Gapped Text",
+      };
+
+    const formatTime = (seconds) => {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    };
+
+    const prettyTopic = (t = "Other") =>
+      t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+    /* =============================
+      LOAD EXAM
+    ============================= */
+    useEffect(() => {
+    if (!exam || questions.length === 0) return;
+
+    // 🔥 Step 1: set initial state
+    window.history.replaceState(
+      { questionIndex: 0 },
+      "",
+      window.location.href
+    );
+
+    // 🔥 Step 2: push buffer state
+    window.history.pushState(
+      { questionIndex: 0 },
+      "",
+      window.location.href
+    );
+  }, [exam]);
+      
+  useEffect(() => {
+    if (!exam || questions.length === 0) return;
+
+    if (isPopNavigationRef.current) {
+      isPopNavigationRef.current = false;
+      return;
+    }
+
+    window.history.pushState(
+      { questionIndex: index },
+      "",
+      window.location.href
+    );
+  }, [index]);
+  useEffect(() => {
+    if (!exam || questions.length === 0) return;
+
+    const handlePopState = (e) => {
+      const state = e.state;
+
+      console.log("READING POPSTATE:", state);
+
+      // 🔥 First question → show modal
+      if (index === 0) {
+        if (!showSubmitConfirm) {
+          setShowSubmitConfirm(true);
+        }
+
+        window.history.replaceState(
+          { questionIndex: 0 },
+          "",
+          window.location.href
+        );
+
+        return;
+      }
+
+      // 🔥 Normal navigation
+      if (!state || typeof state.questionIndex !== "number") {
+        return;
+      }
+
+      isPopNavigationRef.current = true;
+      setIndex(state.questionIndex);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [index, showSubmitConfirm, exam]);
+  useEffect(() => {
+  if (mode !== "exam") return;
+  if (questions.length === 0) return;
+
+  const handleBeforeUnload = (e) => {
+    e.preventDefault();
+    e.returnValue = ""; // 🔥 triggers browser confirmation
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [mode, questions.length]);
+
+    useEffect(() => {
+    console.log("🧠 STATE UPDATED", {
+      exam,
+      questionsCount: questions.length
+    });
+  }, [exam, questions]);
+      
+    //useEffect(() => {
+    //document.addEventListener("contextmenu", e => e.preventDefault());
+    //document.addEventListener("copy", e => e.preventDefault());
+    //document.addEventListener("cut", e => e.preventDefault());
+  //}, []);
+      
+    useEffect(() => {
+    if (!studentId) return;
+    if (parentMode !== "exam" || variant === "homework") return;
+    if (mode !== "loading") return;  // 🔥 CRITICAL GUARD
+
+    const startReadingExam = async () => {
+      const res = await fetch(
+        `${API_BASE}/api/exams/start-reading`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_id: studentId })
+        }
+      );
+
+      const meta = await res.json();
+
+      console.log("🧪 START-READING META:", meta);
+
+      // 🔴 If already completed → go to report flow
+      if (meta.completed === true) {
+        setAttemptId(meta.attempt_id);
+        setFinished(true);
+
+        if (meta.attempt_id) {
+          await loadReportBySession(meta.attempt_id);
+        }
+
+        setMode("report");   // ✅ IMPORTANT
+        onExamFinish?.();
+        return;
+      }
+
+      // 🟢 Continue exam
+      setAttemptId(meta.attempt_id);
+      setTimeLeft(meta.remaining_time);
+
+      const examRes = await fetch(
+        `${API_BASE}/api/exams/reading-content/${meta.exam_id}`
+      );
+
+      const examData = await examRes.json();
+
+      const sections = examData.exam_json?.sections || [];
+
+      const flatQuestions = sections.flatMap((section) => {
+        const qs =
+          section.questions ||
+          section.items ||
+          section.question_list ||
+          [];
+
+        return qs.map((q) => ({
+          ...q,
+          topic: TOPIC_LABELS[section.question_type] || "Other",
+          passage_style: section.passage_style || "informational",
+          answer_options: q.answer_options || section.answer_options || {},
+          section_ref: section
+        }));
+      });
+
+      setExam(examData.exam_json);
+      setIndex(0);
+      setQuestions(flatQuestions);
+
+      setMode("exam");   // ✅ ONLY SOURCE OF EXAM MODE
+
+      onExamStart?.();
+    };
+
+    startReadingExam();
+
+  }, [studentId, parentMode, variant]);
+
+    /* =============================
+      TIMER
+    ============================= */
+    useEffect(() => {
+    if (timeLeft === null) return;
+
+    if (timeLeft <= 0 && !finished) {
+      autoSubmit();
+      return;
+    }
+
+    const t = setInterval(() => {
+      setTimeLeft((v) => (v > 0 ? v - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(t);
+  }, [timeLeft, finished]);
+
+
+    /* =============================
+      GROUP QUESTIONS BY TOPIC
+    ============================= */
+    const groupedQuestions = useMemo(() => {
+        const g = {};
+        questions.forEach((q, i) => {
+          const key = q.section_ref.section_id;
+          console.log("🧩 GROUP KEY CHECK", {
+            section_id: q.section_ref.section_id,
+            topic: q.topic
+          });
+    
+      
+          if (!g[key]) {
+            g[key] = {
+              topic: q.topic,
+              indexes: []
+            };
+          }
+      
+          g[key].indexes.push(i);
+        });
+        return g;
+      }, [questions]);
+
+    /* =============================
+      LOAD REPORT
+    ============================= */
+    
+      
+
+
+
+    /* =============================
+      SUBMIT
+    ============================= */
+    const autoSubmit = async () => {
+    if (finished) return;
+
+    try {
+      const endpoint =
+        variant === "homework"
+          ? "/api/student/submit-homework-reading"
+          : "/api/exams/submit-reading";
+
+      const res = await fetch(
+        `${API_BASE}${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: attemptId,
+            answers
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("❌ submit-reading failed:", errText);
+        return;
+      }
+
+      const data = await res.json();
+
+      // ✅ CHANGE 4B: hydrate report immediately
+      setReport(data.report);
+
+      const dates = await loadExamDatesReading_v1();  // 🔥 refresh dropdown
+      
+      if (dates.length > 0) {
+        const latestExamId = dates[0].exam_id;
+      
+        setSelectedExamId(latestExamId);
+      
+        
+      }
+      
+      setFinished(true);
+      onExamFinish?.();
+
+    } catch (err) {
+      console.error("❌ submit-reading error:", err);
+    }
+  };
+
+    const toggleFlagQuestion = () => {
+
+      const qid =
+        questions[index]?.question_id;
+
+      if (!qid) return;
+
+      setFlaggedQuestions(prev => ({
+
+        ...prev,
+
+        [qid]: !prev[qid]
+
+      }));
+    };
+    /* =============================
+      ANSWER HANDLING
+    ============================= */
+    const handleSelect = (letter) => {
+      const q = questions[index];
+      setAnswers((prev) => ({
+        ...prev,
+        [q.question_id]: letter
+      }));
+    };
+
+    const goTo = (i) => {
+      setVisited((v) => ({ ...v, [i]: true }));
+      setIndex(i);
+    };
+    if (mode === "loading") {
+    return <div>Loading...</div>;
+  }  
+    // 🔴 1. REVIEW MODE — HIGHEST PRIORITY
+      if (mode === "review") {
+        return (
+          <ReadingReview
+            questions={reviewQuestions}
+            examDates={examDates}
+            selectedExamId={selectedExamId}
+            onDateChange={async (examId) => {
+              setSelectedExamId(examId);
+          
+              // 🔥 load report (optional but good)
+              await loadReportReading_v1(examId);
+          
+              // 🔥 load review for this exam (NEW)
+              const selected = examDates.find(d => d.exam_id === examId);
+
+              await handleReviewExam(selected?.session_id);
+            }}
+            onExit={() => {
+              setReviewQuestions([]);
+              setMode("report");
+            }}
+          />
+        );
+      }
+    /* =============================
+      FINISHED VIEW
+    ============================= */
+    if (finished) {
+      if (loadingReport) {
+        return <div>Loading your report…</div>;
+      }
+
+      // 🔴 NO REPORT EXISTS
+    if (!report) {
+      return (
+        <div className="empty-state">
+          <button
+            className="back-dashboard-button"
+            onClick={onBackToDashboard}
+          >
+            ← Back
+          </button>
+
+          <h3>No reports available yet</h3>
+
+          <p>
+            You haven’t attempted any exams yet.
+            <br />
+            Complete an exam to see your performance here.
+          </p>
+        </div>
+      );
+    }
+
+    // 🟡 REPORT EXISTS BUT INVALID / PROCESSING
+    if (!report.overall) {
+      return <div className="loading">Generating your report…</div>;
+    }
+
+      return (
+            <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              overflowY: "auto",
+              background: "#f3f4f6",
+              padding: "32px",
+              boxSizing: "border-box",
+              zIndex: 1
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: "20px"
+              }}
+            >
+              <button
+                onClick={onBackToDashboard}
+                style={{
+                  padding: "10px 18px",
+                  background: "#0d8ecf",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "600"
+                }}
+              >
+                ← Back to Dashboard
+              </button>
+            </div>
+              <h1>
+                You scored {normalizedReport.correct} out of {normalizedReport.total}
+              </h1>
+              
+              {/* ✅ NEW: Review Exam Button */}
+              <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              marginBottom: "20px"
+            }}
+          >
+          
+            {/* 🔽 LEFT: DATE DROPDOWN */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "500"
+                }}
+              >
+                Date
+              </label>
+          
+              <select
+                value={selectedExamId || ""}
+                onChange={async (e) => {
+                  const examId = Number(e.target.value);
+
+                  const selected = examDates.find(d => d.exam_id === examId);
+                  
+                   // 🔥 ADD THESE
+                  console.log("🚨 selected:", selected);
+                  console.log("🚨 session_id:", selected?.session_id);  
+                  console.log("📅 Selected exam object:", selected); // ✅ debug
+
+                  setSelectedExamId(examId);
+
+                  // 🔥 CRITICAL LINE (this fixes your bug)
+                  setAttemptId(selected?.session_id);
+
+                  await loadReportReading_v1(examId);
+                }}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid #d1d5db"
+                }}
+              >
+                {examDates.map((d) => (
+                  <option key={d.exam_id} value={d.exam_id}>
+                    {new Date(d.date).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true
+                    })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          
+            {/* 🔘 RIGHT: REVIEW BUTTON */}
+            <button
+              className="review-exam-btn"
+              onClick={() => handleReviewExam()}
+              disabled={!attemptId}
+            >
+              Review Exam
+            </button>
+          
+          </div>
+      <div className="report-grid">
+
+        {/* =============================
+            OVERALL ACCURACY
+        ============================= */}
+        <div className="card">
+          <h3>Score</h3>
+
+          <div
+            className="accuracy-circle"
+            style={{ "--p": normalizedReport.score }}
+            >
+            <span>{normalizedReport.score}%</span>
+            </div>
+
+          <div className="stats-grid">
+            <div>
+              <span>Total Questions</span>
+              <strong>{normalizedReport.total}</strong>
+            </div>
+
+            <div>
+              <span>Attempted</span>
+              <strong>{normalizedReport.attempted}</strong>
+            </div>
+
+            <div>
+              <span>Correct</span>
+              <strong>{normalizedReport.correct}</strong>
+            </div>
+
+            <div>
+              <span>Incorrect</span>
+              <strong>{normalizedReport.incorrect}</strong>
+            </div>
+
+            <div>
+              <span>Not Attempted</span>
+              <strong>{normalizedReport.not_attempted}</strong>
+            </div>
+
+            <div>
+              <span>Accuracy</span>
+              <strong>{normalizedReport.accuracy}%</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* =============================
+            TOPIC BREAKDOWN
+        ============================= */}
+        <div className="card">
+          <h3>Topic Breakdown</h3>
+
+          {normalizedReport.topics.map((t) => (
+            <div key={t.topic} className="improve-row">
+              <label>{prettyTopic(t.topic)}</label>
+
+              <div className="bar">
+                <div
+                  className="fill blue"
+                  style={{ width: `${t.accuracy}%` }}
+                />
+              </div>
+
+              <span>{t.accuracy}%</span>
+
+              <small>
+                Attempted: {t.attempted} | Correct: {t.correct} | Incorrect:{" "}
+                {t.incorrect} | Not Attempted: {t.not_attempted}
+              </small>
+            </div>
+          ))}
+        </div>
+
+        {/* =============================
+      IMPROVEMENT AREAS
+  ============================= */}
+  {normalizedReport.has_sufficient_data && (
+    <div className="card">
+      <h3>Improvement Areas</h3>
+      <p className="section-note">
+        Topics are ranked from weakest to strongest based on performance.
+      </p>
+
+      {normalizedReport.improvement_order.map((topic, idx) => {
+        const t = normalizedReport.topics.find(
+          (x) => x.topic === topic
+        );
+
+        if (!t) return null;
+
+        return (
+          <div key={topic} className="improve-row">
+            <strong>
+              {idx + 1}. {prettyTopic(topic)}
+            </strong>
+
+            <div className="bar">
+              <div
+                className="fill red"
+                style={{ width: `${t.accuracy}%` }}
+              />
+            </div>
+
+            <small>
+              Accuracy: {t.accuracy}% · Attempted: {t.attempted}/{t.total}
+            </small>
+          </div>
+        );
+      })}
+    </div>
+  )}
+  {/* =============================
+      IMPROVEMENT AREAS (INSUFFICIENT DATA)
+  ============================= */}
+  {!normalizedReport.has_sufficient_data && (
+    <div className="card">
+      <h3>Improvement Areas</h3>
+      <p className="section-note">
+        Not enough data is available to identify improvement areas yet.
+      </p>
+
+      <div className="low-data-warning">
+        Try attempting more questions to get a detailed topic-wise analysis.
+      </div>
+    </div>
+  )}
+
+
+
+      </div>
+    </div>
+  );
+  }
+
+
+    /* =============================
+      SAFE GUARD
+    ============================= */
+    if (!exam || questions.length === 0) {
+    return <div>Loading Exam…</div>;
+  }
+
+  const currentQuestion = questions[index];
+
+    console.log("QUESTION DEBUG:", {
+      question_number: currentQuestion.question_number,
+      question_text: currentQuestion.question_text
+    });  
+    const options = currentQuestion.answer_options || {};
+    const hasOptions = Object.keys(options).length > 0;
+    console.log(currentQuestion.section_ref);
+
+    const rm = currentQuestion.section_ref?.reading_material || {};
+    console.log("RM DEBUG:", rm);
+
+    console.log(
+      "QUESTION TYPE:",
+      currentQuestion.section_ref?.question_type
+    );
+    const currentQuestionType =
+      currentQuestion.section_ref?.question_type || "";
+
+    const isDropdownCloze =
+      currentQuestionType === "dropdown_cloze";
+
+    
+    const passageStyle =
+        currentQuestion.passage_style ||
+        currentQuestion.section_ref?.passage_style ||
+        "informational";
+
+
+    
+
+    /* =============================
+      EXAM UI
+    ============================= */
+    return (
+    <div className="exam-container">
+      <div className="exam-header">
+
+  <div className="timer">
+    ⏳ {formatTime(timeLeft)}
+  </div>
+
+  <div className="question-header-center">
+    <div className="question-counter-inline">
+      <span className="question-counter-text">
+        Question {index + 1} of {questions.length}
+      </span>
+
+      <button
+        className="question-grid-toggle"
+        onClick={() =>
+          setShowQuestionNavigator(prev => !prev)
+        }
+      >
+        ▦
+      </button>
+    </div>
+  </div>
+
+  <div className="exam-header-actions">
+    
+
+    <div className="header-nav-buttons">
+      <button
+        className="nav-btn prev"
+        disabled={index === 0}
+        onClick={() => goTo(index - 1)}
+      >
+        Previous
+      </button>
+
+      <button
+        className={`flag-btn ${
+          flaggedQuestions[questions[index]?.question_id]
+            ? "flagged"
+            : ""
+        }`}
+        onClick={toggleFlagQuestion}
+      >
+        🚩{" "}
+        {flaggedQuestions[questions[index]?.question_id]
+          ? "Unflag"
+          : "Flag"}
+      </button>
+
+      {index < questions.length - 1 ? (
+        <button
+          className="nav-btn next"
+          onClick={() => goTo(index + 1)}
+        >
+          Next
+        </button>
+      ) : (
+        <button
+          className="nav-btn finish"
+          type="button"
+          onClick={() => {
+            console.log("Finish clicked");
+            setShowSubmitConfirm(true);
+          }}
+        >
+          Finish
+        </button>
+      )}
+    </div>
+  </div>
+
+</div>
+
+      {
+        showQuestionNavigator && (
+
+          <div className="question-index-wrapper">
+
+            <div className="question-summary-row">
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    questions.filter(q =>
+                      answers[q.question_id]
+                    ).length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Answered
+                </span>
+
+              </div>
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    questions.length -
+
+                    questions.filter(q =>
+                      answers[q.question_id]
+                    ).length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Not answered
+                </span>
+
+              </div>
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    questions.filter((_, i) =>
+                      !visited[i]
+                    ).length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Not read
+                </span>
+
+              </div>
+
+              <div className="summary-item">
+
+                <span className="summary-count">
+                  {
+                    Object.values(
+                      flaggedQuestions
+                    )
+                      .filter(Boolean)
+                      .length
+                  }
+                </span>
+
+                <span className="summary-label">
+                  Flagged
+                </span>
+
+              </div>
+
+            </div>
+
+            {
+              Object.entries(
+                groupedQuestions
+              ).map(([sectionId, data]) => (
+
+                <div
+                  key={sectionId}
+                  className="topic-group"
+                >
+
+                  <div className="topic-title">
+                    {
+                      prettyTopic(
+                        data.topic
+                      )
+                    }
+                  </div>
+
+                  <div className="question-index-bar">
+
+                    {
+                      data.indexes.map((i) => {
+
+                        const q =
+                          questions[i];
+
+                        let cls =
+                          "question-index-item";
+
+                        if (
+                          answers[
+                            q.question_id
+                          ]
+                        ) {
+
+                          cls += " answered";
+
+                        } else if (
+                          visited[i]
+                        ) {
+
+                          cls += " visited";
+
+                        } else {
+
+                          cls += " unanswered";
+                        }
+
+                        if (
+                          i === index
+                        ) {
+
+                          cls += " current";
+                        }
+
+                        return (
+
+                          <button
+                            key={q.question_id}
+
+                            className={cls}
+
+                            onClick={() => {
+
+                              goTo(i);
+
+                              setShowQuestionNavigator(
+                                false
+                              );
+                            }}
+                          >
+
+                            <div className="question-index-content">
+
+                              <span>
+                                {i + 1}
+                              </span>
+
+                              {
+                                flaggedQuestions[
+                                  q.question_id
+                                ] && (
+                                  <span className="question-flag">
+                                    🚩
+                                  </span>
+                                )
+                              }
+
+                            </div>
+
+                          </button>
+                        );
+                      })
+                    }
+
+                  </div>
+
+                </div>
+              ))
+            }
+
+          </div>
+
+        )
+      }
+
+      <div className="exam-body">
+        <div
+        className={`passage-pane ${passageStyle}`}
+        onContextMenu={(e) => e.preventDefault()}
+        onDoubleClick={(e) => e.preventDefault()}
+      >        {/* LITERARY PASSAGE */}
+                {/* LITERARY PASSAGE (Main Idea & Summary) */}
+                {passageStyle === "literary" && rm && typeof rm === "object" && (
+                  <div className="literary-passage">
+                
+                    {rm.title && <h3>{rm.title}</h3>}
+                
+                    {rm.instructions && (
+                      <ul className="instructions">
+                        {rm.instructions.map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                      </ul>
+                    )}
+                
+                    {rm.paragraphs &&
+                      Object.entries(rm.paragraphs).map(([num, text]) => (
+                        <p key={num} className="reading-paragraph">
+                          <strong>{num}.</strong> {text}
+                        </p>
+                      ))}
+                  </div>
+                )}
+
+
+
+                {/* NON-LITERARY PASSAGE */}
+                {passageStyle !== "literary" && (
+                  <>
+                    {rm.title && <h3>{rm.title}</h3>}
+
+                {/* ===================================== */}
+                {/* EXTRACT MATCHING (NEW ARRAY FORMAT) */}
+                {/* ===================================== */}
+
+                {Array.isArray(rm?.extracts) ? (
+
+                  <div className="extract-matching-container">
+
+                    {/* ========================= */}
+                    {/* EXTRACT TABS */}
+                    {/* ========================= */}
+
+                    <div className="extract-tabs">
+
+                      {rm.extracts.map((extract, idx) => (
+
+                        <button
+                          key={extract.label}
+                          className={`extract-tab ${
+                            activeExtract === idx
+                              ? "active"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            setActiveExtract(idx)
+                          }
+                        >
+                          Extract {extract.label}
+                        </button>
+
+                      ))}
+
+                    </div>
+
+                    {/* ========================= */}
+                    {/* ACTIVE EXTRACT */}
+                    {/* ========================= */}
+
+                    <div className="extract-panel">
+
+                      <h3>
+                        Extract {
+                          rm.extracts[activeExtract]?.label
+                        }
+                      </h3>
+
+                      {rm.extracts[activeExtract]?.title && (
+                        <h4>
+                          {
+                            rm.extracts[activeExtract].title
+                          }
+                        </h4>
+                      )}
+
+                      <p>
+                        {
+                          rm.extracts[activeExtract]?.content
+                        }
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                ) :
+
+                /* ===================================== */
+                /* COMPARATIVE ANALYSIS (OLD OBJECT FORMAT) */
+                /* ===================================== */
+
+                rm?.extracts ? (
+
+                  <div className="extracts">
+
+                    {Object.entries(rm.extracts).map(
+                      ([key, text]) => (
+
+                        <div
+                          key={key}
+                          className="extract"
+                        >
+
+                          <strong>
+                            Extract {key}
+                          </strong>
+
+                          <p>{text}</p>
+
+                        </div>
+                      )
+                    )}
+
+                  </div>
+
+                ) :
+
+                /* ===================================== */
+                /* STANDARD PASSAGES */
+                /* ===================================== */
+
+                (
+
+                  <>
+
+                    
+
+                    
+
+                  </>
+
+                )}
+
+              {rm.content && (
+                <div className="reading-content">
+
+                  {/* -------------------------------- */}
+                  {/* DROPDOWN CLOZE RENDERING */}
+                  {/* -------------------------------- */}
+                  {isDropdownCloze ? (
+
+                    <div className="dropdown-cloze-passage">
+
+                      {(() => {
+
+                        const questionMap = {};
+
+                        questions.forEach((q) => {
+                          questionMap[q.placeholder] = q;
+                        });
+                        const normalizedContent = rm.content
+                          .replace(/\n+/g, " ")
+                          .replace(/\s+/g, " ")
+                          .trim();
+                        const parts = normalizedContent.split(
+                          /(\[GAP_\d+\])/
+                        );
+
+                        return parts.map((part, idx) => {
+
+                          const gapMatch = part.match(
+                            /\[(GAP_\d+)\]/
+                          );
+
+                          // NORMAL TEXT
+                          if (!gapMatch) {
+                            return (
+                              <span key={idx}>
+                                {part}
+                              </span>
+                            );
+                          }
+
+                          // GAP
+                          const placeholder = gapMatch[1];
+
+                          const gapQuestion =
+                            questionMap[placeholder];
+
+                          if (!gapQuestion) {
+                            return (
+                              <span key={idx}>
+                                {part}
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <select
+                              key={idx}
+                              className="dropdown-cloze-select"
+                              value={
+                                answers[gapQuestion.question_id] || ""
+                              }
+                              onChange={(e) =>
+                                setAnswers((prev) => ({
+                                  ...prev,
+                                  [gapQuestion.question_id]:
+                                    e.target.value
+                                }))
+                              }
+                            >
+                              <option value="">
+                                Select
+                              </option>
+
+                              {Object.entries(
+                                gapQuestion.answer_options || {}
+                              ).map(([k, v]) => (
+                                <option key={k} value={k}>
+                                  {v}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        });
+
+                      })()}
+
+                    </div>
+
+                  ) : (
+
+                    <>
+                      {rm.content.split("\n\n").map((block, i) => (
+                        <div key={i} className="stanza">
+                          {block}
+                        </div>
+                      ))}
+                    </>
+
+                  )}
+
+                </div>
+              )}
+              {rm.paragraphs &&
+                Object.entries(rm.paragraphs).map(([num, text]) => (
+                  <p key={num} className="reading-paragraph">
+                    <strong>{num}.</strong> {text}
+                  </p>
+                ))}
+            </>
+          )}
+        </div>
+
+        <div className="question-pane">
+          {!isDropdownCloze && (
+            <p className="question-text">
+              {String(currentQuestion.question_text).replace(
+                /^Q?\d+\.\s*/i,
+                ""
+              )}
+            </p>
+          )}
+
+          {!isDropdownCloze && (
+            <div className="options">
+              {!hasOptions && (
+                <div className="no-options-warning">
+                  ⚠️ No answer options available for this question
+                </div>
+              )}
+
+              {Object.entries(options).map(([k, v]) => (
+                <button
+                  key={k}
+                  className={`option-btn ${
+                    answers[currentQuestion.question_id] === k
+                      ? "selected"
+                      : ""
+                  }`}
+                  onClick={() => handleSelect(k)}
+                >
+                  <strong>{k}.</strong> {v}
+                </button>
+              ))}
+            </div>
+          )}
+
+          
+    
+        </div>
+      </div>
+      {showSubmitConfirm && (
+    <div className="submit-modal-overlay">
+      <div className="submit-modal">
+
+        <h2>Finish Exam?</h2>
+
+        <p>
+          Are you sure you want to submit your exam?
+          <br />
+          You won't be able to change your answers after this.
+        </p>
+
+        <div className="submit-modal-buttons">
+
+          <button
+            className="cancel-btn"
+            onClick={() => setShowSubmitConfirm(false)}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="submit-btn"
+            onClick={() => {
+              setShowSubmitConfirm(false);
+              autoSubmit();
+            }}
+          >
+            Yes, Submit Exam
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  )}
+    </div>
+  );
+
+  }
