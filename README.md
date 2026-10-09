@@ -1,70 +1,96 @@
-# Getting Started with Create React App
+# Exam Management Platform — Admin Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A web-based administrative dashboard for managing students, classes, exam configurations, exam generation, access permissions, and student performance reporting.
 
-## Available Scripts
+The platform provides administrators with a centralized interface to configure assessments, control which students can access exams, monitor examination results, and evaluate student readiness for Selective and Opportunity Class (OC) examinations.
 
-In the project directory, you can run:
+## Key Features
 
-### `npm start`
+### 1. Student Management
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Provides administrators with an interface to manage student records and maintain the student information used throughout the examination platform.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Manage student records.
+- Organize students within classes.
+- Support student-level exam access and performance reporting.
 
-### `npm test`
+### 2. Class and Year Management
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Enables administrators to manage the class structures used to organize students and administer assessments.
 
-### `npm run build`
+- Manage class names.
+- Manage class years.
+- Use class-based organization when configuring exams and assigning exam access.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 3. Exam Configuration and Generation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Allows administrators to define exam configurations and generate examinations using those configurations.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Create exam configurations.
+- Generate exams based on the selected configurations.
+- Manage the assessment-generation workflow through the administrative interface.
 
-### `npm run eject`
+### 4. Exam Access Management
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Provides administrators with control over who can access particular examinations.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- Grant exam access to individual students.
+- Grant exam access to an entire class.
+- Revoke exam access from individual students.
+- Revoke exam access from a class.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+This functionality allows administrators to manage assessment availability according to student and class requirements.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 5. Exam Reports
 
-## Learn More
+Provides an interface for administrators to view examination reports and review student assessment performance.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- View exam reports.
+- Review examination results through the administrative dashboard.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 6. Detailed Topic Performance Reports
 
-### Code Splitting
+Enables administrators to investigate a student's performance at the topic level for a particular examination.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- Select an exam and a student.
+- View detailed topic-level performance information.
+- Identify topics that may require further attention.
 
-### Analyzing the Bundle Size
+These reports provide a more granular view of performance than an overall examination result alone.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 7. Selective and OC Readiness Reports
 
-### Making a Progressive Web App
+Provides administrators with access to individual student readiness reports for Selective and Opportunity Class (OC) examinations.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- View Selective readiness reports for individual students.
+- View OC readiness reports for individual students.
+- Review student readiness through the administrative interface.
 
-### Advanced Configuration
+These reporting capabilities help administrators monitor student preparation and identify areas that may need additional support.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Administrative Workflow
 
-### Deployment
+The platform supports the following high-level workflow:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+1. **Manage students and classes** — Maintain student records, class names, and class years.
+2. **Configure assessments** — Create exam configurations according to assessment requirements.
+3. **Generate examinations** — Generate exams using the defined configurations.
+4. **Control access** — Grant or revoke exam access for individual students or entire classes.
+5. **Review exam reports** — Access examination reports to review student performance.
+6. **Investigate topic performance** — View detailed topic reports for a selected student and examination.
+7. **Monitor readiness** — Review individual Selective and OC readiness reports.
 
-### `npm run build` fails to minify
+## Technology Stack
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The frontend technology stack and supporting libraries should be documented here once confirmed from the repository's implementation.
+
+## Project Architecture
+
+The application serves as the administrative user interface for the wider examination platform. It provides the screens and interactions through which administrators manage student and class information, configure and generate exams, control assessment access, and review performance reports.
+
+The underlying backend is responsible for the API operations and data processing required by these workflows.
+
+## Project Purpose
+
+The Admin Dashboard centralizes examination administration and reporting in one interface. By bringing together student management, class organization, exam configuration, access control, and performance reporting, it helps administrators manage assessments and monitor student preparation more efficiently.
+
